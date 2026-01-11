@@ -30,4 +30,14 @@ export default defineNuxtConfig({
   tailwindcss: {
     exposeConfig: true,
   },
+
+  runtimeConfig: {
+     public: {
+      mqttBrokerHost: process.env.NUXT_PUBLIC_MQTT_BROKER_HOST,
+      mqttBrokerPort: process.env.NUXT_PUBLIC_MQTT_BROKER_PORT,
+      mqttBrokerPath: process.env.NUXT_PUBLIC_MQTT_BROKER_PATH,
+      mqttUsername: process.env.NUXT_PUBLIC_MQTT_USERNAME,
+      mqttPassword: process.env.NUXT_PUBLIC_MQTT_PASSWORD,
+    }
+  }
 });
