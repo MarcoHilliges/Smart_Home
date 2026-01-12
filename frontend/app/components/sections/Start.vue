@@ -1,38 +1,50 @@
 <script lang="ts" setup>
-// enum MessageTopic {
-//   status
-//   wifi/scan
-//   gpio/state
-// }
+enum MessageTopic {
+  STATUS = "status",
+  WIFI = "wifi",
+}
+
+enum WifiSubTopic {
+  SCAN = "scan",
+}
 
 type StatusMessage = {
-  status: "online";
+  status: "online" | "error";
   uptime: number;
+  timestamp: number;
 };
 
-type WLANMessage = {
+type WLANNetwork = {
   ssid: string;
   rssi: number;
   encryption: number;
+};
+
+type WifiScanMessage = {
+  supTopic: WifiSubTopic.SCAN;
+  networks: WLANNetwork[];
+  timestamp: number;
+};
+
+type Device = {
+  id: string;
+  messages: (
+    | {
+        topic: MessageTopic.STATUS;
+        messages: StatusMessage[];
+      }
+    | {
+        topic: MessageTopic.WIFI;
+        messages: WifiScanMessage[];
+      }
+  )[];
 };
 
 const { t } = useI18n();
 
 const { $mqtt } = useNuxtApp();
 
-const receivedMessages = ref<
-  [
-    {
-      id: string;
-      messages: [
-        {
-          topic: string;
-          messages: [string];
-        }
-      ];
-    }?
-  ]
->([]);
+const devices = ref<Device[]>([]);
 
 const mqttIsConnected = computed(() => {
   return $mqtt && $mqtt.connected;
@@ -48,24 +60,72 @@ onMounted(() => {
     console.log("Received message:", topic, message.toString());
     const deviceId = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
+    const supTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
+
     if (!deviceId || !topicType) return;
-    let deviceEntry = receivedMessages.value.find(
-      (entry) => entry?.id === deviceId
-    );
+    let deviceEntry = devices.value.find(({ id }) => id === deviceId);
+
     if (!deviceEntry) {
-      deviceEntry = { id: deviceId, messages: [] };
-      receivedMessages.value.push(deviceEntry);
-      deviceEntry = receivedMessages.value.find(
-        (entry) => entry?.id === deviceId
-      );
+      const entry = { id: deviceId, messages: [] };
+      devices.value.push(entry);
+      deviceEntry = devices.value.find(({ id }) => id === deviceId);
     }
-    const messages = deviceEntry?.messages;
-    let topicEntry = messages.find((entry) => entry.topic === topicType);
-    if (!topicEntry) {
-      topicEntry = { topic: topicType, messages: [] };
-      messages.push(topicEntry);
+    if (!deviceEntry) return console.error("Device Entry should exist here.");
+
+    switch (topicType) {
+      case MessageTopic.STATUS:
+        const statusMessage: StatusMessage = JSON.parse(message.toString());
+        statusMessage.timestamp = Date.now();
+
+        let statusTopicEntry = deviceEntry.messages.find(
+          (entry) => entry.topic === MessageTopic.STATUS
+        );
+        if (!statusTopicEntry) {
+          statusTopicEntry = { topic: MessageTopic.STATUS, messages: [] };
+          deviceEntry.messages.push(statusTopicEntry);
+        }
+
+        // Füge die neue Nachricht hinzu und beschränke die Liste auf die letzten 10 Einträge
+        statusTopicEntry.messages = [
+          statusMessage,
+          ...statusTopicEntry.messages,
+        ].slice(0, 10);
+
+        break;
+
+      case MessageTopic.WIFI:
+        let wifiTopicEntry = deviceEntry.messages.find(
+          (entry) => entry.topic === MessageTopic.WIFI
+        );
+
+        if (!wifiTopicEntry) {
+          wifiTopicEntry = { topic: MessageTopic.WIFI, messages: [] };
+          deviceEntry.messages.push(wifiTopicEntry);
+          wifiTopicEntry = deviceEntry.messages.find(
+            (entry) => entry.topic === MessageTopic.WIFI
+          );
+        }
+        if (!wifiTopicEntry)
+          return console.error("WIFI Topic Entry should exist here.");
+
+        if (supTopicType === WifiSubTopic.SCAN) {
+          const wifiScanMessage: WifiScanMessage = {
+            supTopic: WifiSubTopic.SCAN,
+            networks: JSON.parse(message.toString()).networks,
+            timestamp: Date.now(),
+          };
+
+          // Füge die neue Nachricht hinzu und beschränke die Liste auf die letzten 10 Einträge
+          wifiTopicEntry.messages = [
+            wifiScanMessage,
+            ...wifiTopicEntry.messages,
+          ].slice(0, 10);
+        }
+        break;
+
+      default:
+        console.warn("Unknown topic type:", topicType);
     }
-    topicEntry?.messages.push(JSON.parse(message.toString()));
   });
 });
 
@@ -75,13 +135,38 @@ onUnmounted(() => {
   // Hier nur die spezifischen Komponent-Listener entfernen.
   $mqtt.removeAllListeners("message"); // Beispiel: Nur Message-Listener entfernen.
 });
+
+function getStatusColor(device: Device) {
+  const statusMessage = device.messages.find(
+    (msg) => msg.topic === MessageTopic.STATUS
+  );
+  switch (statusMessage?.messages[0]?.status) {
+    case "online":
+      return "bg-success";
+
+    case "error":
+      return "bg-error";
+
+    default:
+      return "bg-gray-300";
+  }
+}
 </script>
 
 <template>
   <div id="start" class="mt-[92px] flex flex-col items-center">
     <span> mqttIsConnected: {{ mqttIsConnected }} </span>
-    <div v-for="(message, index) in receivedMessages" :key="index">
-      <pre>{{ message }}</pre>
+    <div v-for="(device, index) in devices" :key="index">
+      <h2>Device ID: {{ device.id }}</h2>
+
+      <div
+        class="w-12 h-12 rounded-full"
+        :class="getStatusColor(device)"
+      ></div>
+
+      <div v-for="(message, msgIndex) in device.messages" :key="msgIndex">
+        <pre>{{ message }}</pre>
+      </div>
     </div>
   </div>
 </template>
