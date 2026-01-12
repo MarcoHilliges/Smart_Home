@@ -1,4 +1,5 @@
 {
+  "andValueMore": "und ein weiteres... | und {count} weitere...",
   "appTitle": "Überwachung und Steuerung von ESP32-basierten IoT-Geräten",
   "data-protection": "Datenschutz",
   "imprint": "Impressum",

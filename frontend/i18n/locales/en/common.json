@@ -1,4 +1,5 @@
 {
+  "andValueMore": "and one more... | and {count} more...",
   "appTitle": "Monitoring and control of ESP32-based IoT devices",
   "data-protection": "Data Protection",
   "imprint": "Imprint",

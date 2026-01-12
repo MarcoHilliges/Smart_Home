@@ -34,7 +34,6 @@ PubSubClient client(espClient); // Erstellt den MQTT-Client mit dem TCP-Client
 // ----------------------------------------
 // 3. GPIO-Steuerung
 // ----------------------------------------
-// Definiere die Pins, die du steuern möchtest (mindestens 4)
 // Beispiele für häufig verwendete GPIOs: 2, 4, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27
 // Vermeide GPIOs 0, 1, 3, 5, 6-11 (Flash-Pins), 12 (Boot-Pin), 14 (Boot-Pin), 15 (Boot-Pin) für einfache Verwendung
 #define LED_PIN 2     // Beispiel-LED

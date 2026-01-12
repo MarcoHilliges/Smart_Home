@@ -1,44 +1,14 @@
 <script lang="ts" setup>
-enum MessageTopic {
-  STATUS = "status",
-  WIFI = "wifi",
-}
-
-enum WifiSubTopic {
-  SCAN = "scan",
-}
-
-type StatusMessage = {
-  status: "online" | "error";
-  uptime: number;
-  timestamp: number;
-};
-
-type WLANNetwork = {
-  ssid: string;
-  rssi: number;
-  encryption: number;
-};
-
-type WifiScanMessage = {
-  supTopic: WifiSubTopic.SCAN;
-  networks: WLANNetwork[];
-  timestamp: number;
-};
-
-type Device = {
-  id: string;
-  messages: (
-    | {
-        topic: MessageTopic.STATUS;
-        messages: StatusMessage[];
-      }
-    | {
-        topic: MessageTopic.WIFI;
-        messages: WifiScanMessage[];
-      }
-  )[];
-};
+import {
+  GPIOPin,
+  GPIOPinState,
+  GPIOSubTopic,
+  MessageTopic,
+  WifiSubTopic,
+  type Device,
+  type StatusMessage,
+  type WifiScanMessage,
+} from "~/models/message";
 
 const { t } = useI18n();
 
@@ -58,15 +28,20 @@ onMounted(() => {
 
   $mqtt.on("message", (topic, message) => {
     console.log("Received message:", topic, message.toString());
-    const deviceId = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
+    const deviceIdAndName = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
     const supTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
+
+    const last_dash_index = deviceIdAndName?.lastIndexOf("-");
+    if (!last_dash_index || !deviceIdAndName) return;
+    const deviceName = deviceIdAndName.substring(0, last_dash_index);
+    const deviceId = deviceIdAndName.substring(last_dash_index + 1);
 
     if (!deviceId || !topicType) return;
     let deviceEntry = devices.value.find(({ id }) => id === deviceId);
 
     if (!deviceEntry) {
-      const entry = { id: deviceId, messages: [] };
+      const entry = { id: deviceId, name: deviceName, messages: [] };
       devices.value.push(entry);
       deviceEntry = devices.value.find(({ id }) => id === deviceId);
     }
@@ -123,6 +98,34 @@ onMounted(() => {
         }
         break;
 
+      case MessageTopic.GPIO:
+        let gpioTopicEntry = deviceEntry.messages.find(
+          (entry) => entry.topic === MessageTopic.GPIO
+        );
+        if (!gpioTopicEntry) {
+          gpioTopicEntry = { topic: MessageTopic.GPIO, messages: [] };
+          deviceEntry.messages.push(gpioTopicEntry);
+          gpioTopicEntry = deviceEntry.messages.find(
+            (entry) => entry.topic === MessageTopic.GPIO
+          );
+        }
+        if (!gpioTopicEntry)
+          return console.error("GPIO Topic Entry should exist here.");
+        if (supTopicType === GPIOSubTopic.STATE) {
+          const gpioStateMessage = {
+            supTopic: GPIOSubTopic.STATE,
+            state: JSON.parse(message.toString())["gpio_states"],
+            timestamp: Date.now(),
+          };
+
+          // Füge die neue Nachricht hinzu und beschränke die Liste auf die letzten 10 Einträge
+          gpioTopicEntry.messages = [
+            gpioStateMessage,
+            ...gpioTopicEntry.messages,
+          ].slice(0, 10);
+        }
+        break;
+
       default:
         console.warn("Unknown topic type:", topicType);
     }
@@ -130,43 +133,34 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Optional: Clean up listeners or disconnect
-  // $mqtt.end(); // Normalerweise will man den globalen Client nicht beenden, wenn eine Komponente unmountet wird.
-  // Hier nur die spezifischen Komponent-Listener entfernen.
-  $mqtt.removeAllListeners("message"); // Beispiel: Nur Message-Listener entfernen.
+  $mqtt.removeAllListeners("message");
 });
 
-function getStatusColor(device: Device) {
-  const statusMessage = device.messages.find(
-    (msg) => msg.topic === MessageTopic.STATUS
-  );
-  switch (statusMessage?.messages[0]?.status) {
-    case "online":
-      return "bg-success";
-
-    case "error":
-      return "bg-error";
-
-    default:
-      return "bg-gray-300";
-  }
+function setGpioPinState(
+  deviceName: string,
+  deviceId: string,
+  pin: GPIOPin,
+  value: GPIOPinState
+) {
+  const topic = `esp32/${deviceName}-${deviceId}/gpio/set`;
+  const message = JSON.stringify({ [pin]: value });
+  $mqtt.publish(topic, message);
 }
 </script>
 
 <template>
   <div id="start" class="mt-[92px] flex flex-col items-center">
     <span> mqttIsConnected: {{ mqttIsConnected }} </span>
-    <div v-for="(device, index) in devices" :key="index">
-      <h2>Device ID: {{ device.id }}</h2>
 
-      <div
-        class="w-12 h-12 rounded-full"
-        :class="getStatusColor(device)"
-      ></div>
-
-      <div v-for="(message, msgIndex) in device.messages" :key="msgIndex">
-        <pre>{{ message }}</pre>
-      </div>
+    <div>
+      <template v-for="device in devices" :key="device.id">
+        <SectionsDeviceESP32
+          :id="device.id"
+          :name="device.name"
+          :messages="device.messages"
+          @setGpioPin="({pin, value}) => setGpioPinState(device.name, device.id, pin, value)"
+        />
+      </template>
     </div>
   </div>
 </template>
