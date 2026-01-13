@@ -22,6 +22,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
+// Status
 const lastStatusMessage = computed(() => {
   return (
     props.messages.find((msg) => msg.topic === MessageTopic.STATUS)
@@ -65,6 +66,7 @@ const statusColor = computed(() => {
   }
 });
 
+// Wifi
 const lastWifiScan = computed(() => {
   const wifiMessage = props.messages
     .find((msg) => msg.topic === MessageTopic.WIFI)
@@ -83,6 +85,7 @@ const lastWifiScanNetworks = computed(() => {
     : [];
 });
 
+// GPIO
 const lastGpioMessage = computed(() => {
   return (
     props.messages.filter((msg) => msg.topic === MessageTopic.GPIO)?.[0] || null
@@ -121,12 +124,7 @@ watch(
   }
 );
 
-function formatTimestamp(timestamp: number | undefined | null) {
-  if (!timestamp) return "-";
-  const date = new Date(timestamp);
-  return date.toLocaleString();
-}
-
+// Lifecycle
 onMounted(() => {
   timerInterval = setInterval(() => {
     currentTime.value = Date.now();
@@ -138,6 +136,13 @@ onUnmounted(() => {
     clearInterval(timerInterval);
   }
 });
+
+// Helpers
+function formatTimestamp(timestamp: number | undefined | null) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+}
 </script>
 
 <template>
