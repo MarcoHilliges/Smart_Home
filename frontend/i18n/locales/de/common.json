@@ -1,10 +1,18 @@
 {
+  "NetworksNearby": "Netzwerke in der Nähe",
   "andValueMore": "und ein weiteres... | und {count} weitere...",
   "appTitle": "Überwachung und Steuerung von ESP32-basierten IoT-Geräten",
   "connected": "verbunden",
   "data-protection": "Datenschutz",
   "devices": "Geräte",
   "imprint": "Impressum",
+  "mqttClientState": {
+    "connected": "Verbunden",
+    "disconnected": "Verbindung getrennt",
+    "error": "Verbindungsfehler (Konsole!)",
+    "reconnecting": "Verbindungsversuch",
+    "unknown": "Unbekannter Status"
+  },
   "others": "Weitere",
   "phone": "Tel.",
   "status": {

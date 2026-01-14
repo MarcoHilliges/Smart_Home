@@ -30,6 +30,8 @@ const { t } = useI18n();
       <div
         class="flex flex-col-reverse md:flex-row items-end md:items-center gap-4 md:gap-24 w-[100px] md:w-1/4 justify-end"
       >
+        <TopNavClientConnectionState />
+
         <TopNavLanguageSwitches />
 
         <TopNavThemeSwitches />

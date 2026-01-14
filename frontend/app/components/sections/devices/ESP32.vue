@@ -204,7 +204,7 @@ function formatTimestamp(timestamp: number | undefined | null) {
 
     <div class="flex justify-between gap-12 text-12">
       <div class="w-1/2 flex flex-col items-center gap-6">
-        <span>Wifi</span>
+        <span>{{ t('common.NetworksNearby') }}</span>
         <span>{{ lastWifiScanTimestamp }}</span>
         <div class="flex flex-col gap-6 w-full">
           <ul class="flex flex-col gap-6">

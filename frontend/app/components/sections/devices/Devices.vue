@@ -18,10 +18,6 @@ const { $mqtt } = useNuxtApp();
 const localStorageKey = "Device_Data";
 const devices = ref<Device[]>([]);
 
-const mqttIsConnected = computed(() => {
-  return $mqtt && $mqtt.connected;
-});
-
 onMounted(() => {
   loadDataFromLocalStorage();
 
@@ -59,9 +55,7 @@ onMounted(() => {
 
     switch (topicType) {
       case MessageTopic.STATUS:
-        const statusMessage: StatusMessage = JSON.parse(
-          message.toString()
-        );
+        const statusMessage: StatusMessage = JSON.parse(message.toString());
         statusMessage.timestamp = Date.now();
 
         let statusTopicEntry = deviceEntry.messages.find(
@@ -190,10 +184,11 @@ function loadDataFromLocalStorage() {
 
 <template>
   <div id="devices" class="mt-[92px] flex flex-col items-center">
-    <span> mqttIsConnected: {{ mqttIsConnected }} </span>
-
     <div class="w-full flex flex-wrap justify-center">
-      <template v-for="device in [...devices, ...devices, ...devices, ...devices]" :key="device.id">
+      <template
+        v-for="device in [...devices, ...devices, ...devices, ...devices]"
+        :key="device.id"
+      >
         <ESP32
           :id="device.id"
           :name="device.name"

@@ -1,7 +1,10 @@
 import mqtt from 'mqtt' 
+import type { MqttClientState } from '~/models/message';
 
 export default defineNuxtPlugin(nuxtApp => {
   const config = useRuntimeConfig();
+
+  const mqttConnectionState = ref<MqttClientState>('disconnected');
 
   // Verwende die Variablen aus der Runtime Config
   const MQTT_BROKER_HOST = config.public.mqttBrokerHost;
@@ -28,31 +31,32 @@ export default defineNuxtPlugin(nuxtApp => {
 
   client.on('connect', () => {
     console.log('MQTT Client connected to broker (manual plugin)!');
-    // Hier könntest du einen globalen Event-Bus triggern, wenn du möchtest
+
     client.subscribe("esp32/+/status");
     client.subscribe("esp32/+/wifi/scan");
     client.subscribe("esp32/+/gpio/state");
+    mqttConnectionState.value = 'connected';
   });
 
   client.on('error', (error) => {
     console.error('MQTT Client connection error (manual plugin):', error);
+    mqttConnectionState.value = 'error';
   });
 
   client.on('reconnect', () => {
     console.log('MQTT Client reconnecting...');
+    mqttConnectionState.value = 'reconnecting';
   });
 
   client.on('close', () => {
     console.log('MQTT Client disconnected.');
+    mqttConnectionState.value = 'disconnected';
   });
 
-  // Stelle den MQTT-Client global zur Verfügung
-  // So kannst du in jeder Vue-Komponente oder jeder Page darauf zugreifen:
-  // const { $mqtt } = useNuxtApp();
-  // $mqtt.subscribe(...)
   return {
     provide: {
-      mqtt: client // Das Objekt wird unter $mqtt verfügbar sein
+      mqtt: client, // Das Objekt wird unter $mqtt verfügbar sein
+      mqttConnectionState: mqttConnectionState, // Der Verbindungsstatus wird unter $mqttConnectionState verfügbar sein
     }
   }
 });

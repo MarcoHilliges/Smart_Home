@@ -1,3 +1,5 @@
+export type MqttClientState = 'connected' | 'disconnected' | 'error' | 'reconnecting';
+
 export enum MessageTopic {
   STATUS = "status",
   WIFI = "wifi",
