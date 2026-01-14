@@ -4,16 +4,24 @@ export enum MessageTopic {
   GPIO = "gpio",
 }
 
+export enum StatusSubTopic {
+  GET = "get",
+}
+
 export enum WifiSubTopic {
   SCAN = "scan",
+  GET = "get",
 }
 
 export enum GPIOSubTopic {
   STATE = "state",
+  GET = "get",
 }
 
 export interface StatusMessage {
   status: "online" | "error";
+  wifi: string;
+  rssi: number;
   uptime: number;
   timestamp: number;
 }

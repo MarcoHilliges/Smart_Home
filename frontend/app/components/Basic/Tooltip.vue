@@ -9,7 +9,8 @@ const props = defineProps({
   position: {
     type: String,
     default: "top",
-    validator: (value: string) => ["top", "bottom", "left", "right"].includes(value),
+    validator: (value: string) =>
+      ["top", "bottom", "left", "right"].includes(value),
   },
 });
 
@@ -30,15 +31,20 @@ const positionClasses = computed(() => {
 </script>
 
 <template>
-  <div class="relative inline-block group">
+  <div
+    class="relative inline-block group"
+    :class="{ 'cursor-pointer': tooltipText || $slots.tooltipText }"
+  >
     <slot></slot>
 
     <div
-      v-if="tooltipText"
+      v-if="tooltipText || $slots.tooltipText"
       class="absolute hidden group-hover:block px-3 py-1 text-sm text-white bg-gray-700 rounded-md whitespace-nowrap z-50 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
       :class="positionClasses"
     >
-      {{ tooltipText }}
+      <slot name="tooltipText">
+        {{ tooltipText }}
+      </slot>
     </div>
   </div>
 </template>
