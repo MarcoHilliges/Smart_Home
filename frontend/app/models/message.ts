@@ -1,5 +1,7 @@
 export type MqttClientState = 'connected' | 'disconnected' | 'error' | 'reconnecting';
 
+export type DeviceStatus = "online" | "error" | "offline";
+
 export enum MessageTopic {
   STATUS = "status",
   WIFI = "wifi",
@@ -21,7 +23,7 @@ export enum GPIOSubTopic {
 }
 
 export interface StatusMessage {
-  status: "online" | "error";
+  status: DeviceStatus;
   wifi: string;
   rssi: number;
   uptime: number;
