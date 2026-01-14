@@ -33,21 +33,8 @@ const lastStatusMessage = computed(() => {
   );
 });
 
-const currentTime = ref(Date.now());
-let timerInterval: NodeJS.Timeout | null = null;
-
-const deviceHasTimeout = computed(() => {
-  if (!props.lastSeen) return true;
-  const timeoutDuration = 45 * 1000;
-  return currentTime.value - props.lastSeen > timeoutDuration;
-});
-
 const deviceStatus = computed(() => {
-  return deviceHasTimeout.value
-    ? "timeout"
-    : lastStatusMessage.value?.status
-    ? lastStatusMessage.value?.status
-    : "offline";
+  return lastStatusMessage.value?.status || "offline";
 });
 
 const statusColor = computed(() => {
@@ -57,9 +44,6 @@ const statusColor = computed(() => {
 
     case "error":
       return "bg-error";
-
-    case "timeout":
-      return "bg-warning";
 
     case "offline":
       return "bg-gray-300";
@@ -78,6 +62,7 @@ const lastWifiScan = computed(() => {
   return wifiMessage || null;
 });
 
+const isLoadingWifiScan = ref(false);
 const lastWifiScanTimestamp = computed(() => {
   return formatTimestamp(lastWifiScan.value?.timestamp);
 });
@@ -128,18 +113,23 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => lastWifiScanTimestamp.value,
+  () => {
+    isLoadingWifiScan.value = false;
+  }
+);
+
 // Lifecycle
 onMounted(() => {
-  timerInterval = setInterval(() => {
-    currentTime.value = Date.now();
-  }, 1000);
-
   if (Date.now() - (props.lastSeen || 60000) > 45000) {
     emit("getStatus");
     emit("getWifiScan");
     emit("getGpioStates");
+    isLoadingWifiScan.value = true;
   } else {
     if (Date.now() - (lastWifiScan.value?.timestamp || 120000) > 90000) {
+      isLoadingWifiScan.value = true;
       emit("getWifiScan");
     }
     if (
@@ -148,12 +138,6 @@ onMounted(() => {
     ) {
       emit("getGpioStates");
     }
-  }
-});
-
-onUnmounted(() => {
-  if (timerInterval) {
-    clearInterval(timerInterval);
   }
 });
 
@@ -172,7 +156,7 @@ function formatTimestamp(timestamp: number | undefined | null) {
     <div class="flex justify-between gap-10">
       <h2>{{ props.name }}</h2>
       <div class="flex gap-12 items-center">
-        <BasicTooltip v-if="lastStatusMessage">
+        <BasicTooltip v-if="lastStatusMessage && deviceStatus === 'online'">
           <Wifi v-if="lastStatusMessage.rssi >= -50" class="w-16 h-16" />
           <WifiHigh
             v-else-if="
@@ -204,8 +188,12 @@ function formatTimestamp(timestamp: number | undefined | null) {
 
     <div class="flex justify-between gap-12 text-12">
       <div class="w-1/2 flex flex-col items-center gap-6">
-        <span>{{ t('common.NetworksNearby') }}</span>
-        <span>{{ lastWifiScanTimestamp }}</span>
+        <span>{{ t("common.NetworksNearby") }}</span>
+        <div class="flex items-center">
+          <span>{{ lastWifiScanTimestamp }}</span>
+          <BasicSpinner v-if="isLoadingWifiScan" :size="12" />
+        </div>
+
         <div class="flex flex-col gap-6 w-full">
           <ul class="flex flex-col gap-6">
             <li
@@ -287,7 +275,9 @@ function formatTimestamp(timestamp: number | undefined | null) {
                     isLoadingGpioStates ||
                     value === null ||
                     value === undefined ||
-                    value === 1,
+                    value === 1 ||
+                    deviceStatus !== 'online',
+                  'opacity-50': deviceStatus !== 'online',
                   'text-success-active':
                     isLoadingGpioStates === Number(pin) && value === 0,
                 }"
@@ -304,7 +294,9 @@ function formatTimestamp(timestamp: number | undefined | null) {
                     isLoadingGpioStates ||
                     value === null ||
                     value === undefined ||
-                    value === 0,
+                    value === 0 ||
+                    deviceStatus !== 'online',
+                  'opacity-50': deviceStatus !== 'online',
                   'text-error':
                     isLoadingGpioStates === Number(pin) && value === 1,
                 }"
