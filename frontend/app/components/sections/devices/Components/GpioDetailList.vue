@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { GPIOPin, GPIOPinState, GPIOStateMessage } from "~/models/message";
+import type { DeviceStatus, GPIOPin, GPIOPinState, GPIOStateMessage } from "~/models/message";
 
 const { t } = useI18n();
 
@@ -10,7 +10,7 @@ const emit = defineEmits<{
 
 const props = defineProps<{
   gpioStateMessages: GPIOStateMessage[];
-  deviceStatus: string;
+  deviceStatus: DeviceStatus;
 }>();
 
 const lastGpioStatesMessage = computed(() => {

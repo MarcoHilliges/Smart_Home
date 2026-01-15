@@ -1,8 +1,16 @@
 {
+  "deviceIsOffline": "Device is offline",
+  "settings": {
+    "deviceName": "Device Name",
+    "deviceNameDescription": "The name of the device as it appears on the network.",
+    "loading": "loading settings...",
+    "wifiUpdateInterval": "WiFi Update Interval",
+    "wifiUpdateIntervalDescription": "Interval in seconds for WiFi status updates."
+  },
   "tabs": {
-    "overview": "Overview",
-    "wifi": "WiFi",
     "gpio": "GPIO",
-    "settings": "Settings"
+    "overview": "Overview",
+    "settings": "Settings",
+    "wifi": "WiFi"
   }
 }

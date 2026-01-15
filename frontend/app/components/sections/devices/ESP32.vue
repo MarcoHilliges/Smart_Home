@@ -172,16 +172,22 @@ watch(
       <SectionsDevicesComponentsWiFiHistory
         :wiFiScanMessages="wifiScanMessages"
         v-else-if="content === 'wifi'"
-        class="h-full"
       />
 
       <SectionsDevicesComponentsGpioDetailList
         v-else-if="content === 'gpio'"
         :gpioStateMessages="gpioMessages"
         :deviceStatus="deviceStatus"
-        class="h-full"
         @getGpioStates="emit('getGpioStates')"
         @setGpioPin="(params) => emit('setGpioPin', params)"
+      />
+
+      <SectionsDevicesComponentsSettings
+        v-else-if="content === 'settings'"
+        :deviceStatus="deviceStatus"
+        :deviceId="props.id"
+        :deviceName="props.name"
+        class="h-full"
       />
     </div>
 
