@@ -5,14 +5,14 @@
 #include <Esp.h>          // Für ESP-spezifische Funktionen wie ESP.getFreeHeap()
 
 // ----------------------------------------
-// 1. WLAN-Einstellungen
+// WLAN-Einstellungen
 // Werden aus der secrets.h-Datei geladen, um sie vom Code zu trennen
 // ----------------------------------------
 const char* ssid = WIFI_SSID;       // WLAN-SSID
 const char* password = WIFI_PASSWORD; // WLAN-Passwort
 
 // ----------------------------------------
-// 2. MQTT-Einstellungen
+// MQTT-Einstellungen
 // Werden ebenfalls aus der secrets.h-Datei geladen
 // ----------------------------------------
 const char* mqtt_broker = MQTT_BROKER_IP;   // IP-Adresse des MQTT-Brokers (dein Docker-Host)
@@ -31,12 +31,15 @@ String topic_gpio_state_pub;      // Topic zum Veröffentlichen des aktuellen GP
 String topic_gpio_get_sub;        // Topic zum Abonnieren von Anfragen für den GPIO-Status
 String topic_gpio_set_sub;        // Topic zum Abonnieren von Befehlen zur GPIO-Steuerung
 
+// Globale Variablen für den nicht-blockierenden Scan
+bool wifiScanning = false;        // Flag, ob ein WiFi-Scan läuft
+
 // Instanzen für die WLAN- und MQTT-Kommunikation
 WiFiClient espClient;             // Der TCP-Client, der die WLAN-Verbindung verwaltet
 PubSubClient client(espClient);   // Der MQTT-Client, der über espClient kommuniziert
 
 // ----------------------------------------
-// 3. GPIO-Steuerung und Definitionen
+// GPIO-Steuerung und Definitionen
 // Definiert die GPIO-Pins, die im Projekt verwendet und gesteuert/überwacht werden
 // ----------------------------------------
 // Pins auf dem ESP32-DevKitC V4:
@@ -56,7 +59,7 @@ const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
 
 
 // ----------------------------------------
-// 4. Timer für periodische Aufgaben
+// Timer für periodische Aufgaben
 // Verwendet millis() für nicht-blockierende Zeitintervalle
 // ----------------------------------------
 long lastHeartbeatTime = 0;       // Zeitpunkt des letzten Heartbeats
@@ -173,6 +176,9 @@ void setup_wifi() {
 
   WiFi.begin(ssid, password);
 
+  // Deaktiviert den WiFi Power Save Mode, um die MQTT-Verbindung stabiler zu halten
+  WiFi.setSleep(WIFI_PS_NONE); // WICHTIG für stabile MQTT-Verbindung während WiFi-Operationen
+
   // Warten, bis die WLAN-Verbindung hergestellt ist
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -263,13 +269,37 @@ void sendHeartbeat() {
 // ----------------------------------------
 // Funktion: performWifiScan
 // Führt einen WiFi-Scan durch und sendet die Ergebnisse als JSON.
+// Nutzt einen nicht-blockierenden Scan-Mechanismus.
 // ----------------------------------------
 void performWifiScan() {
+  if (wifiScanning) return; // Nicht starten, wenn bereits ein Scan läuft
+  
+  Serial.println("Starte nicht-blockierenden WLAN-Scan...");
   lastWifiScanTime = millis(); // Aktualisiert den Zeitpunkt des letzten Scans
-  Serial.println("Suche WLAN-Netzwerke...");
-  int n = WiFi.scanNetworks(); // Führt den Scan durch
 
-  // Prüfen, ob der Scan erfolgreich war
+  // WiFi.scanNetworks(true) startet einen nicht-blockierenden Scan im Hintergrund
+  int n = WiFi.scanNetworks(true); // 'true' für asynchronen/nicht-blockierenden Scan
+  if (n == -1) { // -1 bedeutet, Scan wurde gestartet, aber ist noch nicht fertig
+    wifiScanning = true;
+    Serial.println("WLAN-Scan im Hintergrund gestartet.");
+  } else if (n == -2) { // -2 bedeutet, dass der Scan bereits läuft (sollte durch 'if(wifiScanning)' abgefangen werden)
+    Serial.println("WLAN-Scan läuft bereits.");
+  } else { // >= 0, Scan ist aus irgendeinem Grund sofort fertig (unwahrscheinlich bei nicht-blockierendem Scan)
+    Serial.println("WLAN-Scan unerwartet sofort fertig.");
+    processWifiScanResults(n); // Ergebnisse direkt verarbeiten
+  }
+}
+
+// ----------------------------------------
+// Funktion: processWifiScanResults
+// Verarbeitet die Ergebnisse eines abgeschlossenen WiFi-Scans.
+// Wird vom loop() aufgerufen, wenn WiFi.scanComplete() fertig meldet.
+// ----------------------------------------
+void processWifiScanResults(int n) {
+  Serial.print("WLAN-Scan abgeschlossen. Gefundene Netzwerke: ");
+  Serial.println(n);
+
+  // Prüfen, ob Netzwerke gefunden wurden
   if (n <= 0) {
     Serial.print("Keine Netzwerke gefunden oder Fehler beim Scan: ");
     Serial.println(n);
@@ -278,11 +308,9 @@ void performWifiScan() {
     } else {
       Serial.println("MQTT Client ist NICHT verbunden, WiFi Scan nicht gesendet.");
     }
-    
   } else {
     // DynamicJsonDocument mit ausreichender Kapazität für Scan-Ergebnisse
     // 2048 Bytes sind eine gute Schätzung für bis zu 15-20 Netzwerke.
-    // Kann je nach SSID-Länge und Anzahl der Netzwerke angepasst werden.
     DynamicJsonDocument doc(2048); 
 
     JsonObject root = doc.to<JsonObject>();            // Erstellt das Wurzelobjekt des JSON
@@ -312,6 +340,7 @@ void performWifiScan() {
   }
 
   WiFi.scanDelete(); // Scan-Ergebnisse löschen, um Speicher freizugeben und Heap zu entlasten
+  wifiScanning = false; // Setzt das Flag zurück, da der Scan abgeschlossen ist
 }
 
 // ----------------------------------------
@@ -414,23 +443,46 @@ void setup() {
 // Verwaltet MQTT-Verbindung, verarbeitet periodische Aufgaben und Keep-Alives.
 // ----------------------------------------
 void loop() {
-  // Stellt sicher, dass die MQTT-Verbindung aktiv ist, verbindet sich bei Bedarf neu
+  // Stellt sicher, dass die MQTT-Verbindung aktiv ist, verbindet sich bei Bedarf neu.
+  // Dies ist essenziell, damit der ESP32 Nachrichten senden und empfangen kann.
   if (!client.connected()) {
     reconnect_mqtt();
   }
-  client.loop(); // Muss regelmäßig aufgerufen werden, um MQTT-Nachrichten zu verarbeiten und Keep-Alive-Pakete zu senden
+  // client.loop() muss regelmäßig aufgerufen werden, um MQTT-Nachrichten zu verarbeiten,
+  // Keep-Alive-Pakete zu senden und die Verbindung aufrechtzuerhalten.
+  // Wenn diese Funktion zu lange nicht aufgerufen wird, kann die Verbindung abbrechen.
+  client.loop();
+
+  // --- Handling für den nicht-blockierenden WiFi-Scan ---
+  // Überprüft, ob ein WLAN-Scan im Hintergrund läuft
+  if (wifiScanning) {
+    // WiFi.scanComplete() gibt die Anzahl der gefundenen Netzwerke zurück,
+    // wenn der Scan abgeschlossen ist, oder -1, wenn er noch läuft.
+    int scanStatus = WiFi.scanComplete();
+    if (scanStatus >= 0) { // Der Scan ist abgeschlossen (0 oder mehr Netzwerke gefunden)
+      processWifiScanResults(scanStatus); // Verarbeite die Ergebnisse
+      // Das 'wifiScanning' Flag wird in processWifiScanResults auf 'false' gesetzt.
+    }
+  }
+  // --- Ende Handling WiFi-Scan ---
 
   unsigned long currentMillis = millis(); // Aktuelle Uptime in Millisekunden
 
   // Periodischer Heartbeat senden
+  // Sendet einen Heartbeat, wenn die Zeit seit dem letzten Heartbeat abgelaufen ist.
   if (currentMillis - lastHeartbeatTime >= heartbeatInterval) {
     sendHeartbeat();
   }
 
-  // Periodischer WiFi-Scan durchführen
-  if (currentMillis - lastWifiScanTime >= wifiScanInterval) {
+  // Periodischer WiFi-Scan starten
+  // Startet einen neuen WiFi-Scan, wenn die Zeit seit dem letzten Scan abgelaufen ist
+  // und kein anderer Scan gerade läuft.
+  if (!wifiScanning && currentMillis - lastWifiScanTime >= wifiScanInterval) {
     performWifiScan();
   }
 
-  delay(1); // Kleine Pause, um den Watchdog-Timer nicht auszulösen und andere Tasks zuzulassen
+  // Kleine Pause (1 Millisekunde)
+  // Dies gibt dem ESP32-Scheduler Zeit, andere interne Aufgaben zu erledigen (z.B. WiFi-Stack).
+  // Es ist wichtig, die loop() nicht zu blockieren, um die Stabilität zu gewährleisten.
+  delay(1);
 }
