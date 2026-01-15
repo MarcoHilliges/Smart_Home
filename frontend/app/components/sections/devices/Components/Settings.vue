@@ -44,8 +44,6 @@ const isLoadingSettings = ref(false);
 
 onMounted(() => {
   $mqtt.on("message", (topic, message) => {
-    console.log("Received MQTT message on topic:", topic);
-    console.log("Message payload:", message.toString());
     const deviceIdAndName = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
     const last_dash_index = deviceIdAndName?.lastIndexOf("-");
@@ -60,7 +58,6 @@ onMounted(() => {
     const deviceId = deviceIdAndName.substring(last_dash_index + 1);
 
     if (deviceId !== props.deviceId) return;
-    console.log("message received", JSON.parse(message.toString()));
     const messageData: SettingsMessage = JSON.parse(message.toString());
 
     settingsItems.value.forEach((item) => {

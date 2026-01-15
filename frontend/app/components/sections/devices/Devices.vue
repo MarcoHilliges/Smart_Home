@@ -14,7 +14,17 @@ import ESP32 from "./ESP32.vue";
 const { $mqtt, $mqttConnectionState } = useNuxtApp();
 
 const localStorageKey = "Device_Data";
-const devices = ref<Device[]>([]);
+
+const {
+  devices,
+  addDevice,
+  initializeStore,
+  updateDeviceLastSeen,
+  addStatusMessage,
+  addWifiScanMessage,
+  addGpioStateMessage
+} = useDeviceStore();
+// const devices = ref<Device[]>([]);
 
 onMounted(() => {
   loadDataFromLocalStorage();
@@ -31,7 +41,7 @@ onMounted(() => {
     console.log("Received message:", topic, message.toString());
     const deviceIdAndName = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
-    const supTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
+    const subTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
 
     const last_dash_index = deviceIdAndName?.lastIndexOf("-");
     if (!last_dash_index || !deviceIdAndName) return;
@@ -42,94 +52,50 @@ onMounted(() => {
     let deviceEntry = devices.value.find(({ id }) => id === deviceId);
 
     if (!deviceEntry) {
-      const entry = {
+      const newDevice = {
         id: deviceId,
         name: deviceName,
         lastSeen: null,
         messages: [],
       };
-      devices.value.push(entry);
+      addDevice(newDevice);
       deviceEntry = devices.value.find(({ id }) => id === deviceId);
     }
     if (!deviceEntry) return console.error("Device Entry should exist here.");
-    deviceEntry.lastSeen = Date.now();
+    updateDeviceLastSeen(deviceId, Date.now());
 
     switch (topicType) {
       case MessageTopic.STATUS:
         const statusMessage: StatusMessage = JSON.parse(message.toString());
         statusMessage.timestamp = Date.now();
 
-        let statusTopicEntry = deviceEntry.messages.find(
-          (entry) => entry.topic === MessageTopic.STATUS
-        );
-        if (!statusTopicEntry) {
-          statusTopicEntry = { topic: MessageTopic.STATUS, messages: [] };
-          deviceEntry.messages.push(statusTopicEntry);
-        }
-
-        // Füge die neue Nachricht hinzu und beschränke die Liste auf die letzten 10 Einträge
-        statusTopicEntry.messages = [
-          statusMessage,
-          ...statusTopicEntry.messages,
-        ].slice(0, 10);
+        addStatusMessage(deviceId, statusMessage);
 
         break;
 
       case MessageTopic.WIFI:
-        let wifiTopicEntry = deviceEntry.messages.find(
-          (entry) => entry.topic === MessageTopic.WIFI
-        );
-
-        if (!wifiTopicEntry) {
-          wifiTopicEntry = { topic: MessageTopic.WIFI, messages: [] };
-          deviceEntry.messages.push(wifiTopicEntry);
-          wifiTopicEntry = deviceEntry.messages.find(
-            (entry) => entry.topic === MessageTopic.WIFI
-          );
-        }
-        if (!wifiTopicEntry)
-          return console.error("WIFI Topic Entry should exist here.");
-
-        if (supTopicType === WifiSubTopic.SCAN) {
+        if (subTopicType === WifiSubTopic.SCAN) {
           const wifiScanMessage: WifiScanMessage = {
             supTopic: WifiSubTopic.SCAN,
             networks: JSON.parse(message.toString()).networks,
             timestamp: Date.now(),
           };
+          addWifiScanMessage(deviceId, wifiScanMessage);
+        } else console.log("SubTopicType not supported: ", subTopicType);
 
-          // Füge die neue Nachricht hinzu und beschränke die Liste auf die letzten 10 Einträge
-          wifiTopicEntry.messages = [
-            wifiScanMessage,
-            ...wifiTopicEntry.messages,
-          ].slice(0, 10);
-        }
         break;
 
       case MessageTopic.GPIO:
-        let gpioTopicEntry = deviceEntry.messages.find(
-          (entry) => entry.topic === MessageTopic.GPIO
-        );
-        if (!gpioTopicEntry) {
-          gpioTopicEntry = { topic: MessageTopic.GPIO, messages: [] };
-          deviceEntry.messages.push(gpioTopicEntry);
-          gpioTopicEntry = deviceEntry.messages.find(
-            (entry) => entry.topic === MessageTopic.GPIO
-          );
-        }
-        if (!gpioTopicEntry)
-          return console.error("GPIO Topic Entry should exist here.");
-        if (supTopicType === GPIOSubTopic.STATE) {
+        if (subTopicType === GPIOSubTopic.STATE) {
           const gpioStateMessage = {
             supTopic: GPIOSubTopic.STATE as const,
             state: JSON.parse(message.toString()),
             timestamp: Date.now(),
           };
-
-          gpioTopicEntry.messages = [
-            gpioStateMessage,
-            ...gpioTopicEntry.messages,
-          ].slice(0, 10);
-        }
+          
+          addGpioStateMessage(deviceId, gpioStateMessage)
+        } else console.log('SubTopicType not supported: ', subTopicType)
+        
         break;
 
       case MessageTopic.SETTINGS:
@@ -181,7 +147,7 @@ function loadDataFromLocalStorage() {
   console.log("Loading device data from localStorage.");
   const data = localStorage.getItem(localStorageKey);
   if (data) {
-    devices.value = JSON.parse(data);
+    initializeStore(JSON.parse(data));
   }
 }
 </script>
@@ -189,10 +155,7 @@ function loadDataFromLocalStorage() {
 <template>
   <div id="devices" class="mt-[92px] flex flex-col items-center">
     <div class="w-full flex flex-wrap justify-center">
-      <template
-        v-for="device in devices"
-        :key="device.id"
-      >
+      <template v-for="device in devices" :key="device.id">
         <ESP32
           :id="device.id"
           :name="device.name"
