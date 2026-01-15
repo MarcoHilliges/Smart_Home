@@ -11,15 +11,16 @@ import {
 } from "~/models/message";
 import ESP32 from "./ESP32.vue";
 
-const { t } = useI18n();
-
-const { $mqtt } = useNuxtApp();
+const { $mqtt, $mqttConnectionState } = useNuxtApp();
 
 const localStorageKey = "Device_Data";
 const devices = ref<Device[]>([]);
 
 onMounted(() => {
   loadDataFromLocalStorage();
+  devices.value.forEach((device) => {
+    device.lastSeen = null;
+  });
 
   if (!$mqtt) {
     console.error("MQTT Client not injected by plugin.");
@@ -194,6 +195,7 @@ function loadDataFromLocalStorage() {
           :name="device.name"
           :messages="device.messages"
           :lastSeen="device.lastSeen"
+          :clientState="$mqttConnectionState"
           @setGpioPin="
             ({ pin, value }) =>
               setGpioPinState(device.name, device.id, pin, value)

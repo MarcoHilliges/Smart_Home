@@ -43,15 +43,20 @@ watch(
   }
 );
 
-onMounted(() => {
-  if (
-    lastWifiScan.value === null ||
-    Date.now() - (lastWifiScan.value?.timestamp || 60000) > 45000
-  ) {
-    isLoadingWifiScan.value = true;
-    emit("getWifiScan");
-  }
-});
+watch(
+  () => props.deviceStatus,
+  (newVal) => {
+    if (
+      (newVal === "online") &&
+      (lastWifiScan.value === null ||
+        Date.now() - (lastWifiScan.value?.timestamp || 60000) > 45000)
+    ) {
+      isLoadingWifiScan.value = true;
+      emit("getWifiScan");
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

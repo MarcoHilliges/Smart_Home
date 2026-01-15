@@ -6,6 +6,7 @@ import {
   MessageTopic,
   WifiSubTopic,
   type DeviceMessage,
+  type MqttClientState,
 } from "~/models/message";
 
 const emit = defineEmits<{
@@ -20,6 +21,7 @@ const props = defineProps<{
   name: string;
   messages: DeviceMessage[];
   lastSeen: number | null;
+  clientState: MqttClientState;
 }>();
 
 const { t } = useI18n();
@@ -33,7 +35,11 @@ const lastStatusMessage = computed(() => {
 });
 
 const deviceStatus = computed(() => {
-  return lastStatusMessage.value?.status || "offline";
+  return props.clientState === "connected" &&
+    props.lastSeen &&
+    lastStatusMessage.value?.status
+    ? lastStatusMessage.value?.status
+    : "offline";
 });
 
 const statusColor = computed(() => {
@@ -60,18 +66,6 @@ const wifiScanMessages = computed(() => {
       ?.messages.filter((m) => m.supTopic === WifiSubTopic.SCAN) || []
   );
 });
-const lastWifiScan = computed(() => {
-  const wifiMessage = props.messages
-    .find((msg) => msg.topic === MessageTopic.WIFI)
-    ?.messages.filter((m) => m.supTopic === WifiSubTopic.SCAN)?.[0];
-
-  return wifiMessage || null;
-});
-
-const isLoadingWifiScan = ref(false);
-const lastWifiScanTimestamp = computed(() => {
-  return formatTimestamp(lastWifiScan.value?.timestamp);
-});
 
 // GPIO
 const gpioMessages = computed(() => {
@@ -81,21 +75,25 @@ const gpioMessages = computed(() => {
   );
 });
 
-
-
-// Lifecycle
-onMounted(() => {
-  if (Date.now() - (props.lastSeen || 60000) > 45000) {
-    emit("getStatus");
-  }
-});
-
 // Helpers
 function formatTimestamp(timestamp: number | undefined | null) {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
   return date.toLocaleString();
 }
+
+watch(
+  () => props.lastSeen,
+  (newVal) => {
+    if (
+      props.clientState === "connected" &&
+      Date.now() - (newVal || 60000) > 45000
+    ) {
+      emit("getStatus");
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

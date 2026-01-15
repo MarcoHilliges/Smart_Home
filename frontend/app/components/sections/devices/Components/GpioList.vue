@@ -40,22 +40,27 @@ watch(
   { immediate: true }
 );
 
+watch(
+  () => props.deviceStatus,
+  (newVal) => {
+    if (
+      newVal === "online" &&
+      (lastGpioStatesMessage.value === null ||
+        Date.now() - (lastGpioStatesMessage.value?.timestamp || 60000) > 45000)
+    ) {
+      isLoadingGpioStates.value = -1;
+      emit("getGpioStates");
+    }
+  },
+  { immediate: true }
+);
+
 // Helpers
 function formatTimestamp(timestamp: number | undefined | null) {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
   return date.toLocaleString();
 }
-
-onMounted(() => {
-  if (
-    lastGpioStatesMessage.value === null ||
-    Date.now() - (lastGpioStatesMessage.value?.timestamp || 60000) > 45000
-  ) {
-    isLoadingGpioStates.value = -1;
-    emit("getGpioStates");
-  }
-});
 </script>
 
 <template>
