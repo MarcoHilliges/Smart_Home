@@ -128,16 +128,16 @@ void updateDeviceSettings(String payloadString) {
 // ----------------------------------------
 // Pins auf dem ESP32-DevKitC V4:
 // Vermeide GPIOs 0, 1, 3, 5, 6-11 (Flash-Pins), 12 (Boot-Pin), 14 (Boot-Pin), 15 (Boot-Pin)
-// GPIO 2 ist oft eine integrierte LED. Andere sind gut für allgemeine Zwecke.
-#define LED_PIN 2         // Beispiel: Eine LED oder ein digitaler Output
-#define RELAY_PIN_1 4     // Beispiel: Ein Relais oder anderer digitaler Output
-#define RELAY_PIN_2 16    // Beispiel: Ein weiterer digitaler Output
-#define SENSOR_GPIO 17    // Beispiel: Ein Pin, der seinen Zustand meldet, aber nicht gesteuert wird
+
+#define PIN_2 2
+#define PIN_4 4
+#define PIN_16 16
+#define PIN_17 17
 
 // Array speichert die aktuellen logischen Zustände (HIGH/LOW) der steuerbaren Pins
 int gpio_states[4] = {LOW, LOW, LOW, LOW};
 // Array der tatsächlich verwendeten GPIO-Nummern. Reihenfolge muss gpio_states entsprechen.
-int control_pins[] = {LED_PIN, RELAY_PIN_1, RELAY_PIN_2, SENSOR_GPIO};
+int control_pins[] = {PIN_2, PIN_4, PIN_16, PIN_17};
 // Anzahl der definierten Pins
 const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
 
