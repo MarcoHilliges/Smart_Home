@@ -12,6 +12,7 @@ interface SettingsItem {
   description: string;
   value: string | number | null;
   valueType: "string" | "number";
+  inactive?: boolean;
 }
 
 const { $mqtt } = useNuxtApp();
@@ -32,6 +33,7 @@ const settingsItems = ref<SettingsItem[]>([
     description: t("device.settings.deviceNameDescription"),
     value: null,
     valueType: "string",
+    inactive: true,
   },
   {
     key: "wifiScanInterval",
@@ -103,14 +105,19 @@ function saveChanges() {
   if (!valuesAreChanged.value || isLoadingSettings.value) return;
 
   const topic = `esp32/${props.deviceName}-${props.deviceId}/settings/set`;
-  const message: Partial<SettingsMessage> = {};
+  let message: Partial<SettingsMessage> | null = null;
   settingsItems.value.forEach((item) => {
     if (!item.value) return;
     const defaultValue = defaultValues.value.find(
       ({ key }) => key === item.key
     )?.value;
-    if (defaultValue && defaultValue !== item.value)
-      message[item.key] = item.value;
+    if (defaultValue && defaultValue !== item.value) {
+      if (!message) message = { [item.key]: item.value };
+      else {
+        const key = item.key as keyof SettingsMessage;
+        message[key] = item.value as any
+      }
+    }
   });
 
   isLoadingSettings.value = true;
@@ -130,15 +137,18 @@ function saveChanges() {
         v-for="item in settingsItems"
         :key="item.key"
         class="flex items-center gap-12 py-8 border-b last:border-0 px-16 text-12"
+        :class="{ 'opacity-70': item.inactive }"
       >
         <span class="font-semibold">{{ item.label }}</span>
         <BasicTooltip :tooltipText="item.description">
           <Info class="w-14 h-14 text-gray-500" />
         </BasicTooltip>
+        <span>({{ t("common.commingSoon") }})</span>
         <input
           v-model="item.value"
           :type="item.valueType"
           class="w-[100px] ml-auto"
+          :class="{ 'pointer-events-none': item.inactive }"
         />
       </li>
     </ul>
