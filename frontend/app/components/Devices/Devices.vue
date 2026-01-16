@@ -37,7 +37,6 @@ onMounted(() => {
   }
 
   $mqtt.on("message", (topic, message) => {
-    console.log("Received message:", topic, message.toString());
     const deviceIdAndName = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
     const subTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
@@ -80,7 +79,7 @@ onMounted(() => {
             timestamp: Date.now(),
           };
           addWifiScanMessage(deviceId, wifiScanMessage);
-        } else console.log("SubTopicType not supported: ", subTopicType);
+        } else console.warn("SubTopicType not supported: ", subTopicType);
 
         break;
 
@@ -93,7 +92,7 @@ onMounted(() => {
           };
           
           addGpioStateMessage(deviceId, gpioStateMessage)
-        } else console.log('SubTopicType not supported: ', subTopicType)
+        } else console.warn('SubTopicType not supported: ', subTopicType)
         
         break;
 

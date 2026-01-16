@@ -153,14 +153,14 @@ watch(
         v-if="content === 'overview'"
         class="flex justify-between gap-12 h-full px-16"
       >
-        <SectionsDevicesComponentsWiFiScanList
+        <DevicesSectionsWiFiScanList
           :wiFiScanMessages="wifiScanMessages"
           :deviceStatus="deviceStatus"
           :connectedWiFi="lastStatusMessage?.wifi || ''"
           class="w-1/2"
           @getWifiScan="emit('getWifiScan')"
         />
-        <SectionsDevicesComponentsGpioList
+        <DevicesSectionsGpioList
           :gpioStateMessages="gpioMessages"
           :deviceStatus="deviceStatus"
           class="w-1/2"
@@ -169,12 +169,12 @@ watch(
         />
       </div>
 
-      <SectionsDevicesComponentsWiFiHistory
+      <DevicesSectionsWiFiHistory
         :wiFiScanMessages="wifiScanMessages"
         v-else-if="content === 'wifi'"
       />
 
-      <SectionsDevicesComponentsGpioDetailList
+      <DevicesSectionsGpioDetailList
         v-else-if="content === 'gpio'"
         :gpioStateMessages="gpioMessages"
         :deviceStatus="deviceStatus"
@@ -182,7 +182,7 @@ watch(
         @setGpioPin="(params) => emit('setGpioPin', params)"
       />
 
-      <SectionsDevicesComponentsSettings
+      <DevicesSectionsSettings
         v-else-if="content === 'settings'"
         :deviceStatus="deviceStatus"
         :deviceId="props.id"

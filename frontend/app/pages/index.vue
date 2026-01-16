@@ -9,6 +9,6 @@ useHead({
 <template>
   <div class="flex flex-col gap-48 pb-48">
     <TopNav show-nav/>
-    <SectionsDevices />
+    <Devices />
   </div>
 </template>
