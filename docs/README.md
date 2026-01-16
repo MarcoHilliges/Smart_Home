@@ -62,10 +62,10 @@
     - Visual Studio Code
     - Arduino IDE
 
+5. ## Installation & Setup
 <details>
 <summary>Installation & Setup</summary>
 
-5. ## Installation & Setup
 * **Voraussetzungen:**
     - **Docker Desktop:** Installiert und läuft (für Windows/macOS) oder Docker Engine (für Linux).
     - **Node.js (v18+):** Installiert (für Nuxt Frontend).
@@ -76,18 +76,14 @@
 * **A. Backend (RabbitMQ mit Docker Compose):**
     1. **Navigiere zum docker/ Verzeichnis:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         cd <Projekt-Root>/docker
         ```
 
 
     2. **`docker-compose.yml` bearbeiten:** Stelle sicher, dass die docker-compose.yml den RabbitMQ 4.x mit MQTT und WebMQTT Plugins konfiguriert:
 
-        ```
-        yaml
-        Copy
+        ``` yaml
         # docker/docker-compose.yml
         services:
         rabbitmq:
@@ -109,17 +105,13 @@
 
     3. **`config/enabled_plugins` erstellen:** Erstelle im `docker/` Verzeichnis einen `config/` Ordner und darin eine Datei namens enabled_plugins mit folgendem Inhalt:
 
-        ```
-        text
-        Copy
+        ``` text
         [rabbitmq_management,rabbitmq_mqtt,rabbitmq_web_mqtt].
         ```
 
     4. **Broker starten:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         docker compose up -d
         ```
 
@@ -128,17 +120,14 @@
 * **B. ESP32 Firmware:**
     1. **Navigiere zum Firmware-Verzeichnis:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         cd <Projekt-Root>/esp32
         ```
 
     2. **secrets.h erstellen:** Kopiere `secrets.h.example` zu `secrets.h` und passe die Werte an:
 
-        ``` 
-        c++
-        Copy
+        ``` c++
+
         // esp32/secrets.h
         #define WIFI_SSID           "DEINE_WLAN_SSID"
         #define WIFI_PASSWORD       "DEIN_WLAN_PASSWORT"
@@ -161,16 +150,12 @@
 
     1. **Navigiere zum Frontend-Verzeichnis:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         cd <Projekt-Root>/frontend/nuxt-iot-dashboard
         ```
     2. **.env Datei erstellen:** Kopiere im Root des Frontend-Projekts die `.env.example` zu `.env` und passe die Werte an:
 
-        ```        
-        dotenv
-        Copy
+        ``` dotenv
         # frontend/nuxt-iot-dashboard/.env
         NUXT_PUBLIC_MQTT_BROKER_HOST="IP_DES_DOCKER_HOSTS" # z.B. 192.168.1.100
         NUXT_PUBLIC_MQTT_BROKER_PORT=15675
@@ -181,27 +166,22 @@
 
     3. **Abhängigkeiten installieren:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         pnpm install # oder npm install
         ```
 
     4. **Entwicklungs-Server starten:**
 
-        ```
-        bash
-        Copy
+        ``` bash
         pnpm dev # oder npm run dev
         ```
 
     5. **Verifikation:** Öffne den Browser unter [http://localhost:3000](http://localhost:3000). Das Dashboard sollte den MQTT-Status "Connected" anzeigen und die Daten deines ESP32 empfangen.
 </details>
 
+## 6. Ordnerstruktur des Repositorys
 <details>
 <summary>Ordnerstruktur des Repositorys</summary>
-
-## 6. Ordnerstruktur des Repositorys
 
     ```
     text
