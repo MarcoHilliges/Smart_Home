@@ -22,7 +22,7 @@ const {
   addWifiScanMessage,
   addGpioStateMessage,
   saveDataIntoLocalStorage,
-  loadDataFromLocalStorage
+  loadDataFromLocalStorage,
 } = useDeviceStore();
 
 onMounted(() => {
@@ -37,14 +37,9 @@ onMounted(() => {
   }
 
   $mqtt.on("message", (topic, message) => {
-    const deviceIdAndName = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
+    const deviceId = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
     const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
     const subTopicType = topic.split("/")[3]; // Extrahiere den Sub-Nachrichtentyp aus dem Topic (falls vorhanden)
-
-    const last_dash_index = deviceIdAndName?.lastIndexOf("-");
-    if (!last_dash_index || !deviceIdAndName) return;
-    const deviceName = deviceIdAndName.substring(0, last_dash_index);
-    const deviceId = deviceIdAndName.substring(last_dash_index + 1);
 
     if (!deviceId || !topicType) return;
     let deviceEntry = devices.value.find(({ id }) => id === deviceId);
@@ -52,7 +47,7 @@ onMounted(() => {
     if (!deviceEntry) {
       const newDevice = {
         id: deviceId,
-        name: deviceName,
+        name: "",
         lastSeen: null,
         messages: [],
       };
@@ -66,6 +61,7 @@ onMounted(() => {
       case MessageTopic.STATUS:
         const statusMessage: StatusMessage = JSON.parse(message.toString());
         statusMessage.timestamp = Date.now();
+        deviceEntry.name = statusMessage.deviceName;
 
         addStatusMessage(deviceId, statusMessage);
 
@@ -90,10 +86,10 @@ onMounted(() => {
             state: JSON.parse(message.toString()),
             timestamp: Date.now(),
           };
-          
-          addGpioStateMessage(deviceId, gpioStateMessage)
-        } else console.warn('SubTopicType not supported: ', subTopicType)
-        
+
+          addGpioStateMessage(deviceId, gpioStateMessage);
+        } else console.warn("SubTopicType not supported: ", subTopicType);
+
         break;
 
       case MessageTopic.SETTINGS:
@@ -114,30 +110,30 @@ function setGpioPinState(
   deviceName: string,
   deviceId: string,
   pin: GPIOPin,
-  value: GPIOPinState
+  value: GPIOPinState,
 ) {
-  const topic = `esp32/${deviceName}-${deviceId}/gpio/set`;
+  const topic = `esp32/${deviceId}/gpio/set`;
   const message = JSON.stringify({ [pin]: value });
   $mqtt.publish(topic, message);
 }
 
 function getStatus(deviceName: string, deviceId: string) {
-  const topic = `esp32/${deviceName}-${deviceId}/status/get`;
+  const topic = `esp32/${deviceId}/status/get`;
   $mqtt.publish(topic, "");
 }
 
 function getWifiScan(deviceName: string, deviceId: string) {
-  const topic = `esp32/${deviceName}-${deviceId}/wifi/get`;
+  const topic = `esp32/${deviceId}/wifi/get`;
   $mqtt.publish(topic, "");
 }
 
 function getGpioStates(deviceName: string, deviceId: string) {
-  const topic = `esp32/${deviceName}-${deviceId}/gpio/get`;
+  const topic = `esp32/${deviceId}/gpio/get`;
   $mqtt.publish(topic, "");
 }
 
 function loadDataFromStorage() {
-  const data = loadDataFromLocalStorage()
+  const data = loadDataFromLocalStorage();
   if (data) {
     initializeStore(JSON.parse(data));
   }

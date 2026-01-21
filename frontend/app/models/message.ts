@@ -27,26 +27,6 @@ export enum GPIOSubTopic {
   GET = "get",
 }
 
-export interface StatusMessage {
-  status: DeviceStatus;
-  wifi: string;
-  rssi: number;
-  uptime: number;
-  timestamp: number;
-}
-
-export interface WLANNetwork {
-  ssid: string;
-  rssi: number;
-  encryption: number;
-}
-
-export interface WifiScanMessage {
-  supTopic: WifiSubTopic.SCAN;
-  networks: WLANNetwork[];
-  timestamp: number;
-}
-
 export enum GPIOPin {
   PIN_2 = 2,
   PIN_4 = 4,
@@ -65,6 +45,28 @@ export enum GPIOPin {
 export enum GPIOPinState {
   LOW = 0,
   HIGH = 1,
+}
+
+export interface StatusMessage {
+  status: DeviceStatus;
+  wifi: string;
+  rssi: number;
+  uptime: number;
+  timestamp: number;
+  deviceName: string;
+  gpioStates: Record<GPIOPin, GPIOPinState>;
+}
+
+export interface WLANNetwork {
+  ssid: string;
+  rssi: number;
+  encryption: number;
+}
+
+export interface WifiScanMessage {
+  supTopic: WifiSubTopic.SCAN;
+  networks: WLANNetwork[];
+  timestamp: number;
 }
 
 export interface GPIOStateMessage {
