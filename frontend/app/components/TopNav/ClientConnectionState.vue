@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { MqttClientState } from "~/models/message";
+
 const { t } = useI18n();
 
 const { $mqttConnectionState } = useNuxtApp();
@@ -35,37 +37,42 @@ const connectionStateColor = computed(() => {
   }
 });
 
+function showMqttClientState(value: MqttClientState) {
+  switch (value) {
+    case "connected":
+      toast.success({
+        title: t("common.mqttClientState.title"),
+        message: t(`common.mqttClientState.${value}`),
+      });
+      break;
+    case "error":
+      toast.error({
+        title: t("common.mqttClientState.title"),
+        message: t(`common.mqttClientState.${value}`),
+      });
+      break;
+    case "disconnected":
+      toast.info({
+        title: t("common.mqttClientState.title"),
+        message: t(`common.mqttClientState.${value}`),
+      });
+      break;
+    case "reconnecting":
+      toast.info({
+        title: t("common.mqttClientState.title"),
+        message: t(`common.mqttClientState.${value}`),
+      });
+  }
+}
+
 watch(
   () => mqttClientState.value,
   (newValue) => {
-    console.log(newValue);
-    switch (newValue) {
-      case "connected":
-        toast.success({
-          title: t("common.mqttClientState.title"),
-          message: t(`common.mqttClientState.${newValue}`),
-        });
-        break;
-      case "error":
-        toast.error({
-          title: t("common.mqttClientState.title"),
-          message: t(`common.mqttClientState.${newValue}`),
-        });
-        break;
-      case "disconnected":
-        toast.info({
-          title: t("common.mqttClientState.title"),
-          message: t(`common.mqttClientState.${newValue}`),
-        });
-        break;
-      case "reconnecting":
-        toast.info({
-          title: t("common.mqttClientState.title"),
-          message: t(`common.mqttClientState.${newValue}`),
-        });
-    }
+    showMqttClientState(newValue);
   },
 );
+
+onMounted(() => showMqttClientState(mqttClientState.value));
 </script>
 
 <template>
