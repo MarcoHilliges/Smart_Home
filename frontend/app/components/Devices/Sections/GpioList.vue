@@ -48,8 +48,8 @@ watch(
     if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
       console.log(gpioPinStates.value?.[isLoadingGpioStates.value]);
       toast.success({
+        title: props.deviceName,
         message: t("device.setGpio.successText", {
-          deviceName: props.deviceName,
           pinName: "PIN " + isLoadingGpioStates.value,
           state: gpioPinStates.value?.[isLoadingGpioStates.value]
             ? t("common.activated")

@@ -26,6 +26,7 @@ const props = defineProps<{
   clientState: MqttClientState;
 }>();
 
+const toast = useToast();
 const { t } = useI18n();
 
 const content = ref<ContentTab>("overview");
@@ -67,6 +68,32 @@ const statusColor = computed(() => {
       return "bg-gray-300";
   }
 });
+
+watch(
+  () => deviceStatus.value,
+  (newValue) => {
+    console.log(newValue);
+    switch (newValue) {
+      case "online":
+        toast.success({
+          title: props.name,
+          message: t(`common.status.${newValue}`),
+        });
+        break;
+      case "error":
+        toast.error({
+          title: props.name,
+          message: t(`common.status.${newValue}`),
+        });
+        break;
+      case "offline":
+        toast.info({
+          title: props.name,
+          message: t(`common.status.${newValue}`),
+        });
+    }
+  },
+);
 
 // Wifi
 const wifiScanMessages = computed(() => {
