@@ -1,5 +1,6 @@
 {
   "deviceIsOffline": "Device is offline",
+  "setGpio.successText": "",
   "settings": {
     "deviceName": "Device Name",
     "deviceNameDescription": "The name of the device as it appears on the network.",

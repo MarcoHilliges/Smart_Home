@@ -1,10 +1,12 @@
 {
   "NetworksNearby": "Netzwerke in der Nähe",
+  "activated": "aktiviert",
   "andValueMore": "und ein weiteres... | und {count} weitere...",
   "appTitle": "Überwachung und Steuerung von ESP32-basierten IoT-Geräten",
   "commingSoon": "bald verfügbar",
   "connected": "verbunden",
   "data-protection": "Datenschutz",
+  "deactivated": "deaktiviert",
   "devices": "Geräte",
   "imprint": "Impressum",
   "lastUpdate": "Letzt Aktualisierung",

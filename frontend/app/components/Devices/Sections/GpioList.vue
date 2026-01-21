@@ -11,6 +11,9 @@ const props = defineProps<{
   deviceStatus: string;
 }>();
 
+const toast = useToast();
+const { t } = useI18n();
+
 const lastGpioStatesMessage = computed(() => {
   return props.gpioStateMessages?.[0] || null;
 });
@@ -23,7 +26,7 @@ const formatedLastGpioStateTimestamp = computed(() => {
   return formatTimestamp(lastGpioStatesTimestamp.value);
 });
 
-const isLoadingGpioStates = ref<null | number>(null);
+const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<Record<GPIOPin, GPIOPinState> | null>(null);
 
 function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
@@ -39,6 +42,18 @@ watch(
     gpioPinStates.value = lastGpioStatesMessage.value
       ? { ...lastGpioStatesMessage.value.state }
       : null;
+
+    if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
+      console.log(gpioPinStates.value?.[isLoadingGpioStates.value]);
+      toast.success({
+        message: t("device.setGpio.successText", {
+          name: 'PIN ' + isLoadingGpioStates.value,
+          state: gpioPinStates.value?.[isLoadingGpioStates.value]
+            ? t("common.activated")
+            : t("common.deactivated"),
+        }),
+      });
+    }
 
     isLoadingGpioStates.value = null;
   },

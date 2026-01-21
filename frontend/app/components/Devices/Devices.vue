@@ -137,7 +137,6 @@ function getGpioStates(deviceName: string, deviceId: string) {
 }
 
 function loadDataFromStorage() {
-  console.log("Loading device data from localStorage.");
   const data = loadDataFromLocalStorage()
   if (data) {
     initializeStore(JSON.parse(data));

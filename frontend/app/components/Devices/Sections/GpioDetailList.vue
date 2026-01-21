@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import type { DeviceStatus, GPIOPin, GPIOPinState, GPIOStateMessage } from "~/models/message";
-
-const { t } = useI18n();
+import type {
+  DeviceStatus,
+  GPIOPin,
+  GPIOPinState,
+  GPIOStateMessage,
+} from "~/models/message";
 
 const emit = defineEmits<{
   setGpioPin: [{ pin: GPIOPin; value: GPIOPinState }];
@@ -13,15 +16,22 @@ const props = defineProps<{
   deviceStatus: DeviceStatus;
 }>();
 
+const toast = useToast();
+const { t } = useI18n();
+
 const lastGpioStatesMessage = computed(() => {
   return props.gpioStateMessages?.[0] || null;
 });
 
 const lastGpioStatesTimestamp = computed(() => {
-  return formatTimestamp(lastGpioStatesMessage.value?.timestamp);
+  return lastGpioStatesMessage.value?.timestamp;
 });
 
-const isLoadingGpioStates = ref(null as null | number);
+const formatedLastGpioStateTimestamp = computed(() => {
+  return formatTimestamp(lastGpioStatesTimestamp.value);
+});
+
+const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<Record<GPIOPin, GPIOPinState> | null>(null);
 
 function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
@@ -37,9 +47,22 @@ watch(
     gpioPinStates.value = lastGpioStatesMessage.value
       ? { ...lastGpioStatesMessage.value.state }
       : null;
+
+    if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
+      console.log(gpioPinStates.value?.[isLoadingGpioStates.value]);
+      toast.success({
+        message: t("device.setGpio.successText", {
+          name: "PIN " + isLoadingGpioStates.value,
+          state: gpioPinStates.value?.[isLoadingGpioStates.value]
+            ? t("common.activated")
+            : t("common.deactivated"),
+        }),
+      });
+    }
+
     isLoadingGpioStates.value = null;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
@@ -54,7 +77,7 @@ watch(
       emit("getGpioStates");
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // Helpers
@@ -68,7 +91,10 @@ function formatTimestamp(timestamp: number | undefined | null) {
 <template>
   <div class="flex flex-col h-full">
     <div class="w-full flex justify-center items-center relative">
-      <span>{{ t('common.lastUpdate') }}: {{ lastGpioStatesTimestamp }}</span>
+      <span
+        >{{ t("common.lastUpdate") }}:
+        {{ formatedLastGpioStateTimestamp }}</span
+      >
       <BasicSpinner
         v-if="isLoadingGpioStates"
         class="absolute right-0"

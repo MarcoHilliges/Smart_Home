@@ -1,10 +1,12 @@
 {
   "NetworksNearby": "Networks nearby",
+  "activated": "activated",
   "andValueMore": "and one more... | and {count} more...",
   "appTitle": "Monitoring and control of ESP32-based IoT devices",
   "commingSoon": "comming soon",
   "connected": "connected",
   "data-protection": "Data Protection",
+  "deactivated": "deactivated",
   "devices": "Devices",
   "imprint": "Imprint",
   "lastUpdate": "Last update",

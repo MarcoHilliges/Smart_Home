@@ -10,6 +10,7 @@ export default defineNuxtConfig({
     "@nuxtjs/i18n",
     "@nuxt/image",
     "@nuxtjs/tailwindcss",
+    "nuxt-toast",
   ],
 
   i18n: {
@@ -32,12 +33,12 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-     public: {
+    public: {
       mqttBrokerHost: process.env.NUXT_PUBLIC_MQTT_BROKER_HOST,
       mqttBrokerPort: process.env.NUXT_PUBLIC_MQTT_BROKER_PORT,
       mqttBrokerPath: process.env.NUXT_PUBLIC_MQTT_BROKER_PATH,
       mqttUsername: process.env.NUXT_PUBLIC_MQTT_USERNAME,
       mqttPassword: process.env.NUXT_PUBLIC_MQTT_PASSWORD,
-    }
-  }
+    },
+  },
 });
