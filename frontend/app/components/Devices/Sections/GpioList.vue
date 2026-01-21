@@ -16,10 +16,14 @@ const lastGpioStatesMessage = computed(() => {
 });
 
 const lastGpioStatesTimestamp = computed(() => {
-  return formatTimestamp(lastGpioStatesMessage.value?.timestamp);
+  return lastGpioStatesMessage.value?.timestamp;
 });
 
-const isLoadingGpioStates = ref(null as null | number);
+const formatedLastGpioStateTimestamp = computed(() => {
+  return formatTimestamp(lastGpioStatesTimestamp.value);
+});
+
+const isLoadingGpioStates = ref<null | number>(null);
 const gpioPinStates = ref<Record<GPIOPin, GPIOPinState> | null>(null);
 
 function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
@@ -35,9 +39,10 @@ watch(
     gpioPinStates.value = lastGpioStatesMessage.value
       ? { ...lastGpioStatesMessage.value.state }
       : null;
+
     isLoadingGpioStates.value = null;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
@@ -52,7 +57,7 @@ watch(
       emit("getGpioStates");
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // Helpers
@@ -67,7 +72,7 @@ function formatTimestamp(timestamp: number | undefined | null) {
   <div class="flex flex-col items-center gap-6">
     <span>GPIO</span>
     <div class="w-full flex justify-center items-center relative">
-      <span>{{ lastGpioStatesTimestamp }}</span>
+      <span>{{ formatedLastGpioStateTimestamp }}</span>
       <BasicSpinner
         v-if="isLoadingGpioStates"
         class="absolute right-0"
