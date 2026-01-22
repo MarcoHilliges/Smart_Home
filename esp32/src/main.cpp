@@ -487,6 +487,10 @@ void setup() {
   }
 
   // --- Generiere die eindeutige Device ID ---
+  // Initialisiere WiFi im STA-Modus, um die MAC-Adresse auslesen zu können
+  WiFi.mode(WIFI_STA);
+  delay(100); // Gib dem WiFi-Modul Zeit zur Initialisierung
+  
   // Holt die 6-Byte MAC-Adresse des WiFi-Moduls
   uint8_t mac[6];
   WiFi.macAddress(mac);
