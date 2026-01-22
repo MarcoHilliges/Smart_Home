@@ -6,7 +6,14 @@
 
 ## 2. Systemarchitektur
 * **Diagramm:** 
-    **ESP32 (Mikrocontroller)** --MQTT--> **RabbitMQ (Docker) + MQTT/WebMQTT Plugin** --MQTT--> **Nuxt 4 App (Dashboard)**
+
+    ```mermaid
+    graph TD;
+        ESP32 (Mikrocontroller)-->RabbitMQ (Docker) + MQTT/WebMQTT Plugin;
+        RabbitMQ (Docker) + MQTT/WebMQTT Plugin-->ESP32 (Mikrocontroller);
+        RabbitMQ (Docker) + MQTT/WebMQTT Plugin-->Nuxt 4 App (Dashboard);
+        Nuxt 4 App (Dashboard)-->RabbitMQ (Docker) + MQTT/WebMQTT Plugin;
+    ```
 
 * **Komponenten:**
     - **ESP32 Firmware:** Läuft auf dem Mikrocontroller, sammelt Daten (WLAN, GPIO), führt Befehle aus und kommuniziert über MQTT.
