@@ -22,7 +22,7 @@ const char* mqtt_pass = MQTT_PASSWORD;      // MQTT-Passwort
 
 // Globale Variablen für die Geräte-ID und MQTT-Topics.
 // Diese werden dynamisch in setup() initialisiert, da deviceId von der MAC abhängt.
-String deviceId;                  // Eindeutige ID für diesen ESP32 (Basisname + MAC-Adresse)
+String deviceId;                  // Eindeutige ID für diesen ESP32 (MAC-Adresse)
 String topic_status_pub;          // Topic zum Veröffentlichen des Online-Status/Heartbeats
 String topic_status_get_sub;      // Topic zum Abonnieren von Anfragen für den Status
 String topic_wifi_scan_pub;       // Topic zum Veröffentlichen von WiFi-Scan-Ergebnissen
@@ -35,7 +35,7 @@ String topic_settings_pub;        // Topic zum Veröffentlichen der Einstellunge
 String topic_settings_set_sub;    // Topic zum Abonnieren von Befehlen zur Einstellung der Geräteeinstellungen
 
 // Globale Variablen für den nicht-blockierenden Scan
-// String currentDeviceName = BASE_DEVICE_NAME; // TODO: add this later | Gerätenamen anpassen
+String currentDeviceName = BASE_DEVICE_NAME; // TODO: add this later | Gerätenamen anpassen
 bool wifiScanning = false;        // Flag, ob ein WiFi-Scan läuft
 
 // ----------------------------------------
@@ -330,12 +330,21 @@ void sendHeartbeat() {
   Serial.println("Sende Heartbeat...");
   lastHeartbeatTime = millis(); // Aktualisiert den Zeitpunkt des letzten Heartbeats
 
-  DynamicJsonDocument doc(256); // ArduinoJson Dokument für den Heartbeat-Payload (256 Bytes sind ausreichend)
+  DynamicJsonDocument doc(512); // ArduinoJson Dokument für den Heartbeat-Payload (512 Bytes für mehr Puffer)
 
   doc["status"] = "online";      // Status des Geräts
   doc["wifi"] = WiFi.SSID();     // Aktuell verbundenes WLAN-SSID
   doc["rssi"] = WiFi.RSSI();     // Signalstärke des verbundenen WLANs
   doc["uptime"] = millis() / 1000; // Uptime in Sekunden
+  doc["deviceName"] = currentDeviceName; // Name des Geräts
+
+  // Erstellt das verschachtelte GPIO-States-Objekt
+  JsonObject gpio_states_json = doc.createNestedObject("gpioStates");
+
+  // Fügt den Status jedes Pins zum JSON-Objekt hinzu
+  for (int i = 0; i < NUM_PINS; i++) {
+    gpio_states_json[String(control_pins[i])] = gpio_states[i]; // Pin-Nummer als Key, Zustand als Value (0/1)
+  }
 
   String payload;
   serializeJson(doc, payload); // Serialisiert das JSON-Dokument in einen String
@@ -478,6 +487,10 @@ void setup() {
   }
 
   // --- Generiere die eindeutige Device ID ---
+  // Initialisiere WiFi im STA-Modus, um die MAC-Adresse auslesen zu können
+  WiFi.mode(WIFI_STA);
+  delay(100); // Gib dem WiFi-Modul Zeit zur Initialisierung
+  
   // Holt die 6-Byte MAC-Adresse des WiFi-Moduls
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -486,8 +499,7 @@ void setup() {
   char macStr[18]; // Puffer für "XXXXXXXXXXXX\0" (13 Zeichen)
   sprintf(macStr, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  // Kombiniert den Basisnamen aus secrets.h mit der MAC-Adresse
-  deviceId = String(BASE_DEVICE_NAME) + "-" + String(macStr);
+  deviceId = String(macStr);
   Serial.print("Generated Device ID: "); Serial.println(deviceId);
   // --- Ende Generierung ---
 
