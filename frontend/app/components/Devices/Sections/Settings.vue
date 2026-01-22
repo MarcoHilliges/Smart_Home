@@ -98,13 +98,13 @@ onMounted(() => {
 
 function getSettings() {
   isLoadingSettings.value = true;
-  $mqtt.publish(`esp32/${props.deviceName}-${props.deviceId}/settings/get`, "");
+  $mqtt.publish(`esp32/${props.deviceId}/settings/get`, "");
 }
 
 function saveChanges() {
   if (!valuesAreChanged.value || isLoadingSettings.value) return;
 
-  const topic = `esp32/${props.deviceName}-${props.deviceId}/settings/set`;
+  const topic = `esp32/${props.deviceId}/settings/set`;
   let message: Partial<SettingsMessage> | null = null;
   settingsItems.value.forEach((item) => {
     if (!item.value) return;
