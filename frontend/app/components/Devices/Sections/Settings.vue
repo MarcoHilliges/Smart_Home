@@ -13,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const { updateDeviceName } = useDeviceStore();
+const toast = useToast();
 
 const settingsItems = ref<SettingsItem[]>([
   {
@@ -60,6 +61,7 @@ const valuesAreChanged = computed(() => {
 });
 
 const isLoadingSettings = ref(false);
+const isSavingSettings = ref(false);
 
 onMounted(() => {
   $mqtt.on("message", (topic, message) => {
@@ -70,6 +72,10 @@ onMounted(() => {
 
     if (deviceId !== props.deviceId) return;
     const messageData: SettingsMessage = JSON.parse(message.toString());
+
+    let oldValues = [];
+    if (isSavingSettings.value)
+      oldValues = JSON.parse(JSON.stringify(settingsItems.value));
 
     settingsItems.value.forEach((item) => {
       const dataValue = messageData[item.key as keyof SettingsMessage];
@@ -85,6 +91,15 @@ onMounted(() => {
         }
       }
     });
+
+    if (
+      isSavingSettings.value &&
+      JSON.stringify(oldValues) === JSON.stringify(settingsItems.value)
+    )
+      toast.success({
+        title: t("device.tabs.settings"),
+        message: t("common.saveSuccessfully"),
+      });
 
     defaultValues.value = JSON.parse(JSON.stringify(settingsItems.value));
 
@@ -120,6 +135,7 @@ function saveChanges() {
   });
 
   isLoadingSettings.value = true;
+  isSavingSettings.value = true;
   $mqtt.publish(topic, JSON.stringify(message));
 }
 </script>
@@ -148,7 +164,13 @@ function saveChanges() {
           v-model="item.value"
           :type="item.valueType"
           class="w-[100px] ml-auto border border-transparent p-2"
-          :class="{ 'pointer-events-none': item.inactive }"
+          :class="{
+            'pointer-events-none': item.inactive,
+            '!border-error':
+              !item.value ||
+              (item.min && item.value.length < item.min) ||
+              (item.max && item.value.length > item.max),
+          }"
         />
         <input
           v-else-if="item.valueType === 'number'"

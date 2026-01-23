@@ -11,16 +11,17 @@
   "imprint": "Imprint",
   "lastUpdate": "Last update",
   "mqttClientState": {
-    "title": "Client status",
     "connected": "Connected",
     "disconnected": "Disconnected",
     "error": "Connection error (Console!)",
     "reconnecting": "Reconnecting",
+    "title": "Client status",
     "unknown": "Unknown state"
   },
   "others": "Others",
   "phone": "Phone",
   "save": "Save",
+  "saveSuccessfully": "Save successfully",
   "status": {
     "error": "Error",
     "offline": "Offline",

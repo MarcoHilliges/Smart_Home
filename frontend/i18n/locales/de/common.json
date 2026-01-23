@@ -11,16 +11,17 @@
   "imprint": "Impressum",
   "lastUpdate": "Letzt Aktualisierung",
   "mqttClientState": {
-    "title": "Client Status",
     "connected": "Verbunden",
     "disconnected": "Verbindung getrennt",
     "error": "Verbindungsfehler (Konsole!)",
     "reconnecting": "Verbindungsversuch",
+    "title": "Client Status",
     "unknown": "Unbekannter Status"
   },
   "others": "Weitere",
   "phone": "Tel.",
   "save": "Speichern",
+  "saveSuccessfully": "Speichern erfolgreich",
   "status": {
     "error": "Fehler",
     "offline": "Offline",

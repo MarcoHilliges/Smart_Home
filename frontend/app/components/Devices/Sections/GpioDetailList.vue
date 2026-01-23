@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { DeviceStatus, GPIOPin, GPIOPinState } from "~/models/device";
-import type {
-  GPIOStateMessage,
-} from "~/models/message";
+import type { GPIOStateMessage } from "~/models/message";
 
 const emit = defineEmits<{
   setGpioPin: [{ pin: GPIOPin; value: GPIOPinState }];
@@ -70,7 +68,6 @@ watch(
       : null;
 
     if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
-      console.log(gpioPinStates.value?.[isLoadingGpioStates.value]);
       toast.success({
         title: props.deviceName,
         message: t("device.setGpio.successText", {
