@@ -95,11 +95,13 @@ onMounted(() => {
     if (
       isSavingSettings.value &&
       JSON.stringify(oldValues) === JSON.stringify(settingsItems.value)
-    )
+    ) {
+      isSavingSettings.value = false;
       toast.success({
         title: t("device.tabs.settings"),
         message: t("common.saveSuccessfully"),
       });
+    }
 
     defaultValues.value = JSON.parse(JSON.stringify(settingsItems.value));
 
