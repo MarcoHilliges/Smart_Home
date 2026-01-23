@@ -1,4 +1,4 @@
-import type { DeviceMessage } from "./message";
+import type { DeviceMessage, SettingsMessage } from "./message";
 
 export type DeviceStatus = "online" | "error" | "offline";
 
@@ -19,6 +19,31 @@ export enum GPIOPinState {
   LOW = 0,
   HIGH = 1,
 }
+
+// Settings
+export interface StringSettingsItem {
+  key: keyof SettingsMessage;
+  label: string;
+  description: string;
+  value: string | null;
+  valueType: "string";
+  min?: number;
+  max?: number;
+  inactive?: boolean;
+}
+
+export interface NumberSettingsItem {
+  key: keyof SettingsMessage;
+  label: string;
+  description: string;
+  value: number | null;
+  valueType: "number";
+  min?: number;
+  max?: number;
+  inactive?: boolean;
+}
+
+export type SettingsItem = StringSettingsItem | NumberSettingsItem;
 
 // ESP-32
 export enum ESP32GPIOPin {

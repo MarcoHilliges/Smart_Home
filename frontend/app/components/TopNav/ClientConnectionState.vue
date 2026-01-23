@@ -74,7 +74,7 @@ watch(
 
 onMounted(() => {
   // Verhindert doppelte Nachricht
-  setTimeout(() => showMqttClientState(mqttClientState.value), 100);
+  setTimeout(() => showMqttClientState(mqttClientState.value), 300);
 });
 </script>
 

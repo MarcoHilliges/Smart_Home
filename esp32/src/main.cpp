@@ -58,9 +58,9 @@ PubSubClient client(espClient);   // Der MQTT-Client, der über espClient kommun
 // Sendet die aktuellen Geräteeinstellungen als JSON an topic_settings_pub.
 // ----------------------------------------
 void sendDeviceSettings() {
-  DynamicJsonDocument doc(512); // Ausreichend für ein paar Einstellungen
+  DynamicJsonDocument doc(512); // Ausreichend für alle Einstellungen
 
-  // doc["deviceName"] = currentDeviceName; // TODO: add this later | Gerätenamen anpassen
+  doc["deviceName"] = currentDeviceName;
   doc["wifiScanInterval"] = wifiScanInterval; // Der aktuell aktive Wert
 
   String payload;
@@ -94,16 +94,15 @@ void updateDeviceSettings(String payloadString) {
 
   bool settingsChanged = false;
 
-  // TODO: add this later | Gerätenamen anpassen
-  // if (doc.containsKey("deviceName")) {
-  //   String newName = doc["deviceName"].as<String>();
-  //   if (newName != currentDeviceName) {
-  //     currentDeviceName = newName;
-  //     deviceSettings.deviceName = newName;
-  //     Serial.print("Gerätename aktualisiert zu: "); Serial.println(currentDeviceName);
-  //     settingsChanged = true;
-  //   }
-  // }
+  if (doc.containsKey("deviceName")) {
+    String newName = doc["deviceName"].as<String>();
+    if (newName != currentDeviceName) {
+      currentDeviceName = newName;
+      deviceSettings.deviceName = newName;
+      Serial.print("Gerätename aktualisiert zu: "); Serial.println(currentDeviceName);
+      settingsChanged = true;
+    }
+  }
 
   if (doc.containsKey("wifiScanInterval")) {
     long newInterval = doc["wifiScanInterval"].as<long>();
