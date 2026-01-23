@@ -1,4 +1,5 @@
 #include "secrets.h"      // Enthält vertrauliche WLAN- und MQTT-Zugangsdaten. MUSS in .gitignore!
+#include "littlefs_settings.h" // LittleFS-Verwaltung für Geräteeinstellungen
 #include <ArduinoJson.h>  // Bibliothek für effizientes JSON-Parsing und -Generierung
 #include <WiFi.h>         // Bibliothek für WLAN-Funktionalität
 #include <PubSubClient.h> // Bibliothek für MQTT-Kommunikation
@@ -46,7 +47,7 @@ long lastHeartbeatTime = 0;       // Zeitpunkt des letzten Heartbeats
 const long heartbeatInterval = 30000; // Intervall für Heartbeats (30 Sekunden)
 
 long lastWifiScanTime = 0;        // Zeitpunkt des letzten WiFi-Scans
-long wifiScanInterval = 60000;  // Intervall für WiFi-Scans (60 Sekunden)
+long wifiScanInterval = 60000;  // Intervall für WiFi-Scans (wird von LittleFS geladen)
 
 // Instanzen für die WLAN- und MQTT-Kommunikation
 WiFiClient espClient;             // Der TCP-Client, der die WLAN-Verbindung verwaltet
@@ -98,6 +99,7 @@ void updateDeviceSettings(String payloadString) {
   //   String newName = doc["deviceName"].as<String>();
   //   if (newName != currentDeviceName) {
   //     currentDeviceName = newName;
+  //     deviceSettings.deviceName = newName;
   //     Serial.print("Gerätename aktualisiert zu: "); Serial.println(currentDeviceName);
   //     settingsChanged = true;
   //   }
@@ -108,6 +110,7 @@ void updateDeviceSettings(String payloadString) {
     // Intervall muss mindestens 5 Sekunden sein und muss sich vom aktuellen Wert unterscheiden
     if (newInterval > 5000 && newInterval != wifiScanInterval) { 
       wifiScanInterval = newInterval; // Aktualisiere den globalen Timer für den nächsten Scan
+      deviceSettings.wifiScanInterval = newInterval; // Speichere auch in der Settings-Struktur
       Serial.print("WiFi Scan Intervall aktualisiert zu: "); Serial.println(wifiScanInterval);
       settingsChanged = true;
     } else {
@@ -115,9 +118,15 @@ void updateDeviceSettings(String payloadString) {
     }
   }
 
-  // Nach der Aktualisierung die neuen Einstellungen zurücksenden,
+  // Nach der Aktualisierung die neuen Einstellungen zurücksenden und speichern,
   // damit das Frontend weiß, dass die Änderung übernommen wurde.
   if (settingsChanged) {
+    // Speichere die aktualisierten Einstellungen auf LittleFS
+    if (saveSettings()) {
+      Serial.println("Einstellungen wurden auf LittleFS gespeichert!");
+    } else {
+      Serial.println("Fehler beim Speichern der Einstellungen auf LittleFS!");
+    }
     sendDeviceSettings();
   }
 }
@@ -471,6 +480,24 @@ void reportGpioStates() {
 void setup() {
   Serial.begin(115200); // Serielle Ausgabe starten für Debugging
   Serial.println("Setup starting...");
+
+  // ========== LittleFS Initialisierung ==========
+  if (!initLittleFS()) {
+    Serial.println("KRITISCHER FEHLER: LittleFS konnte nicht initialisiert werden!");
+    // Wir fahren trotzdem fort, verwenden aber Standard-Einstellungen
+  } else {
+    // Versuche, die gespeicherten Einstellungen zu laden
+    if (!loadSettings()) {
+      Serial.println("Keine gespeicherten Einstellungen gefunden, verwende Standards.");
+    }
+  }
+  
+  // Aktualisiere die lokalen Variablen mit geladenen Einstellungen
+  wifiScanInterval = deviceSettings.wifiScanInterval;
+  currentDeviceName = deviceSettings.deviceName;
+  
+  // Debug-Ausgabe der geladenen Settings
+  printSettings();
 
   // Debug-Ausgabe der Secret-Werte (optional, nur für Entwicklung)
   Serial.print("WLAN SSID: "); Serial.println(ssid);
