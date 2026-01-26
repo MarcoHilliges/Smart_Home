@@ -68,7 +68,6 @@ watch(
       : null;
 
     if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
-      console.log(gpioPinStates.value?.[isLoadingGpioStates.value]);
       toast.success({
         title: props.deviceName,
         message: t("device.setGpio.successText", {

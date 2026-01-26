@@ -30,8 +30,6 @@ export default defineNuxtPlugin(nuxtApp => {
   });
 
   client.on('connect', () => {
-    console.log('MQTT Client connected to broker (manual plugin)!');
-
     client.subscribe("esp32/+/status");
     client.subscribe("esp32/+/wifi/scan");
     client.subscribe("esp32/+/gpio/state");

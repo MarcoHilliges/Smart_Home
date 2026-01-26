@@ -15,24 +15,21 @@ export const useDeviceStore = () => {
     if (!isInitialized) {
       devices.value = initialData;
       isInitialized = true;
-      console.log("Device Store initialized.");
     }
   };
 
   const addDevice = (device: Device) => {
     if (devices.value.find((d) => d.id === device.id)) {
-      console.log(`Device ${device.id} already exists in store.`);
+      console.warn(`Device ${device.id} already exists in store.`);
       return;
     }
     devices.value.push(device);
-    console.log(`Device ${device.id} added to store.`);
   };
 
   const updateDeviceName = (deviceId: string, newName: string) => {
     const device = devices.value.find((d) => d.id === deviceId);
     if (device) {
       device.name = newName;
-      console.log(`Device ${deviceId} name updated to ${newName}`);
     }
   };
 
@@ -40,7 +37,6 @@ export const useDeviceStore = () => {
     const device = devices.value.find((d) => d.id === deviceId);
     if (device) {
       device.lastSeen = timestamp;
-      console.log(`Device ${deviceId} last seen updated to ${timestamp}`);
     }
   };
 
@@ -58,7 +54,6 @@ export const useDeviceStore = () => {
         0,
         10
       ); // Nur die letzten 10 Nachrichten behalten
-      console.log(`Status message added to device ${deviceId}`);
     }
   };
 
@@ -73,7 +68,6 @@ export const useDeviceStore = () => {
         device.messages.push(wifiMessages);
       }
       wifiMessages.messages = [message, ...wifiMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
-      console.log(`WiFi scan message added to device ${deviceId}`);
     }
   };
 
@@ -88,17 +82,14 @@ export const useDeviceStore = () => {
         device.messages.push(gpioMessages);
       }
       gpioMessages.messages = [message, ...gpioMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
-      console.log(`GPIO state message added to device ${deviceId}`);
     }
   };
 
   const saveDataIntoLocalStorage = () => {
-    console.log("Saving device data into localStorage.");
     localStorage.setItem(localStorageKey, JSON.stringify(devices.value));
   };
 
   const loadDataFromLocalStorage = () => {
-    console.log("Loading device data from localStorage.");
     const data = localStorage.getItem(localStorageKey);
     return data;
   };
