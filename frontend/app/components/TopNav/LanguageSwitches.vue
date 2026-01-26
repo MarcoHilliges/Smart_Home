@@ -7,18 +7,18 @@ const availableLocales = computed(() => {
 </script>
 
 <template>
-  <div class="flex justify-center h-full">
-    <button
+  <BasicCard class="flex justify-center w-[100px]">
+    <BasicCardButton
       v-for="language in locales"
       :key="language.code"
+      class="border-r last:border-none"
+      :is-active="locale === language.code"
+      :is-selectable="locale !== language.code"
+      general-classes="w-1/3 text-10"
+      :active-classes="`!w-2/3 font-bold text-16`"
       @click="setLocale(language.code)"
-      class="nav-icon-button !p-0 text-12 w-26 h-26"
-      :class="{
-        'is-active': locale === language.code,
-        selectable: locale !== language.code,
-      }"
     >
       {{ language.code.toUpperCase() }}
-    </button>
-  </div>
+    </BasicCardButton>
+  </BasicCard>
 </template>

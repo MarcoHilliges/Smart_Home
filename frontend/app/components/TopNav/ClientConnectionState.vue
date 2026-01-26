@@ -79,7 +79,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <BasicTooltip :tooltipText="connectionStateText">
+  <BasicTooltip :tooltipText="connectionStateText" class="flex items-center gap-8">
+    Client Status:
     <div class="w-12 h-12 rounded-full" :class="connectionStateColor"></div>
   </BasicTooltip>
 </template>

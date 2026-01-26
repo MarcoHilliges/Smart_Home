@@ -2,7 +2,7 @@
 </script>
 
 <template>
-<div class="border border-border rounded-md h-full">
+<div class="rounded-md h-full card-color card-shadow">
     <slot>Content</slot>
 </div>
 </template>

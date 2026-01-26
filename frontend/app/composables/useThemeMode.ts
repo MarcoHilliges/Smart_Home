@@ -7,9 +7,10 @@ export const useThemeMode = () => {
   const modes: {
     value: ThemeMode;
     icon: FunctionalComponent<LucideProps>;
+    activeClasses?: String
   }[] = [
     { value: "system", icon: Monitor },
-    { value: "light", icon: Sun },
+    { value: "light", icon: Sun, activeClasses: 'text-yellow-400' },
     { value: "dark", icon: Moon },
   ];
 
