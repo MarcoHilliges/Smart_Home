@@ -2,10 +2,27 @@ import type { DeviceMessage, SettingsMessage } from "./message";
 
 export type DeviceStatus = "online" | "error" | "offline";
 
+export enum GPIOPinState {
+  LOW = 0,
+  HIGH = 1,
+}
+
+export type GPIOGroup = "lamp" | "pump" | "none"
+
+export interface GPIO {
+  pinNumber: ESP32GPIOPin
+  group?: GPIOGroup
+  label?: string
+  state: GPIOPinState
+}
+
+export type SetGPIO = Pick<GPIO, 'pinNumber' | 'state'>;
+
 export interface Device {
   id: string;
   name: string;
   lastSeen: number | null;
+  gpios: GPIO[]
   messages: DeviceMessage[];
 }
 
@@ -13,11 +30,6 @@ export interface WLANNetwork {
   ssid: string;
   rssi: number;
   encryption: number;
-}
-
-export enum GPIOPinState {
-  LOW = 0,
-  HIGH = 1,
 }
 
 // Settings

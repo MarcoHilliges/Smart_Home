@@ -10,7 +10,7 @@ const { t } = useI18n();
     <div
       class="flex items-center justify-between py-12 sm:px-24 bg-page50 dark:bg-pageDark50 gradient h-[72px]"
     >
-      <div class="md:w-1/4">
+      <div class="flex items-center gap-24 h-full">
         <NuxtLink to="/">
           <img
             class="h-[60px] dark:hidden"
@@ -23,13 +23,11 @@ const { t } = useI18n();
             alt="Logo"
           />
         </NuxtLink>
+
+        <TopNavClientConnectionState />
       </div>
 
-      <div
-        class="flex gap-24 items-center h-full"
-      >
-        <TopNavClientConnectionState />
-
+      <div class="flex gap-24 items-center h-full">
         <TopNavLanguageSwitches />
 
         <TopNavThemeSwitches />

@@ -37,4 +37,8 @@ watch(themeModeInLocalStorage, (newValue) => {
   </BasicCard>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+:deep(svg) {
+  transition: all 300ms;
+}
+</style>

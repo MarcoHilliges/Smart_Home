@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { WifiZero, WifiLow, WifiHigh, Wifi } from "lucide-vue-next";
-import type { GPIOPin, GPIOPinState } from "~/models/device";
+import type { Device, GPIOPin, GPIOPinState } from "~/models/device";
 import {
   MessageTopic,
   WifiSubTopic,
@@ -18,10 +18,7 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps<{
-  id: string;
-  name: string;
-  messages: DeviceMessage[];
-  lastSeen: number | null;
+  device: Device;
   clientState: MqttClientState;
 }>();
 
@@ -39,14 +36,14 @@ const tabs: { label: string; value: ContentTab }[] = [
 // Status
 const lastStatusMessage = computed(() => {
   return (
-    props.messages.find((msg) => msg.topic === MessageTopic.STATUS)
+    props.device.messages.find((msg) => msg.topic === MessageTopic.STATUS)
       ?.messages[0] || null
   );
 });
 
 const deviceStatus = computed(() => {
   return props.clientState === "connected" &&
-    props.lastSeen &&
+    props.device.lastSeen &&
     lastStatusMessage.value?.status
     ? lastStatusMessage.value?.status
     : "offline";
@@ -75,19 +72,19 @@ watch(
     switch (newValue) {
       case "online":
         toast.success({
-          title: props.name,
+          title: props.device.name,
           message: t(`common.status.${newValue}`),
         });
         break;
       case "error":
         toast.error({
-          title: props.name,
+          title: props.device.name,
           message: t(`common.status.${newValue}`),
         });
         break;
       case "offline":
         toast.info({
-          title: props.name,
+          title: props.device.name,
           message: t(`common.status.${newValue}`),
         });
     }
@@ -97,7 +94,7 @@ watch(
 // Wifi
 const wifiScanMessages = computed(() => {
   return (
-    props.messages
+    props.device.messages
       .find((msg) => msg.topic === MessageTopic.WIFI)
       ?.messages.filter((m) => m.supTopic === WifiSubTopic.SCAN) || []
   );
@@ -106,8 +103,8 @@ const wifiScanMessages = computed(() => {
 // GPIO
 const gpioMessages = computed(() => {
   return (
-    props.messages.find((msg) => msg.topic === MessageTopic.GPIO)?.messages ||
-    []
+    props.device.messages.find((msg) => msg.topic === MessageTopic.GPIO)
+      ?.messages || []
   );
 });
 
@@ -119,7 +116,7 @@ function formatTimestamp(timestamp: number | undefined | null) {
 }
 
 watch(
-  () => props.lastSeen,
+  () => props.device.lastSeen,
   (newVal) => {
     if (
       props.clientState === "connected" &&
@@ -138,7 +135,7 @@ watch(
   >
     <div class="mx-16">
       <div class="flex justify-between gap-10">
-        <h2>{{ props.name }}</h2>
+        <h2>{{ props.device.name }}</h2>
         <div class="flex gap-12 items-center">
           <BasicTooltip v-if="lastStatusMessage && deviceStatus === 'online'">
             <component
@@ -170,7 +167,7 @@ watch(
         </div>
       </div>
       <div class="text-10">
-        <span> #{{ props.id }} </span>
+        <span> #{{ props.device.id }} </span>
       </div>
     </div>
 
@@ -187,7 +184,8 @@ watch(
           @getWifiScan="emit('getWifiScan')"
         />
         <DevicesSectionsGpioList
-          :deviceName="props.name"
+          :deviceName="props.device.name"
+          :gpios="props.device.gpios"
           :gpioStateMessages="gpioMessages"
           :deviceStatus="deviceStatus"
           class="w-1/2"
@@ -203,7 +201,8 @@ watch(
 
       <DevicesSectionsGpioDetailList
         v-else-if="content === 'gpio'"
-        :deviceName="props.name"
+        :deviceName="props.device.name"
+        :gpios="props.device.gpios"
         :gpioStateMessages="gpioMessages"
         :deviceStatus="deviceStatus"
         @getGpioStates="emit('getGpioStates')"
@@ -213,8 +212,8 @@ watch(
       <DevicesSectionsSettings
         v-else-if="content === 'settings'"
         :deviceStatus="deviceStatus"
-        :deviceId="props.id"
-        :deviceName="props.name"
+        :deviceId="props.device.id"
+        :deviceName="props.device.name"
       />
     </div>
 

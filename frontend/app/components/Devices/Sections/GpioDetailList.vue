@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import type { DeviceStatus, GPIOPin, GPIOPinState } from "~/models/device";
+import type {
+  DeviceStatus,
+  GPIO,
+  GPIOPin,
+  GPIOPinState,
+} from "~/models/device";
 import type { GPIOStateMessage } from "~/models/message";
 
 const emit = defineEmits<{
@@ -9,6 +14,7 @@ const emit = defineEmits<{
 
 const props = defineProps<{
   deviceName: string;
+  gpios: GPIO[];
   gpioStateMessages: GPIOStateMessage[];
   deviceStatus: DeviceStatus;
 }>();
@@ -30,7 +36,7 @@ const formatedLastGpioStateTimestamp = computed(() => {
 });
 
 const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
-const gpioPinStates = ref<Record<GPIOPin, GPIOPinState> | null>(null);
+const gpioPinStates = ref<GPIO[]>(props.gpios);
 
 let intervalGetGpioStates: NodeJS.Timeout | null = null;
 
@@ -63,9 +69,8 @@ function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
 watch(
   () => lastGpioStatesTimestamp.value,
   () => {
-    gpioPinStates.value = lastGpioStatesMessage.value
-      ? { ...lastGpioStatesMessage.value.state }
-      : null;
+    if (lastGpioStatesMessage.value?.gpioStates)
+      gpioPinStates.value = { ...lastGpioStatesMessage.value.gpioStates };
 
     if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
       toast.success({
@@ -128,47 +133,46 @@ onBeforeUnmount(() => {
 
     <ul class="overflow-y-auto">
       <li
-        v-for="(value, pin) in gpioPinStates"
-        :key="pin"
+        v-for="gpio in gpioPinStates"
+        :key="gpio.pinNumber"
         class="flex items-center justify-between gap-12 py-8 border-b last:border-0 px-16"
       >
-        <span class="whitespace-nowrap">Pin {{ pin }}</span>
-
+        <span class="whitespace-nowrap">Pin {{ gpio.pinNumber }}</span>
         <div class="flex items-center justify-between text-10">
           <button
             class="flex items-center justify-center w-24 h-20 rounded-l-md hover:text-success-active"
             :class="{
-              'bg-success': value === 1,
-              'bg-gray-300': value === 0,
+              'bg-success': gpio.state === 1,
+              'bg-gray-300': gpio.state === 0,
               'pointer-events-none':
                 isLoadingGpioStates ||
-                value === null ||
-                value === undefined ||
-                value === 1 ||
+                gpio.state === null ||
+                gpio.state === undefined ||
+                gpio.state === 1 ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
               'text-success-active':
-                isLoadingGpioStates === Number(pin) && value === 0,
+                isLoadingGpioStates === Number(gpio.pinNumber) && gpio.state === 0,
             }"
-            @click="setGpioPinState(Number(pin), 1)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 1)"
           >
             ON
           </button>
           <button
             class="flex items-center justify-center w-24 h-20 rounded-r-md hover:text-error"
             :class="{
-              'bg-error': value === 0,
-              'bg-gray-300': value === 1,
+              'bg-error': gpio.state === 0,
+              'bg-gray-300': gpio.state === 1,
               'pointer-events-none':
                 isLoadingGpioStates ||
-                value === null ||
-                value === undefined ||
-                value === 0 ||
+                gpio.state === null ||
+                gpio.state === undefined ||
+                gpio.state === 0 ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
-              'text-error': isLoadingGpioStates === Number(pin) && value === 1,
+              'text-error': isLoadingGpioStates === Number(gpio.pinNumber) && gpio.state === 1,
             }"
-            @click="setGpioPinState(Number(pin), 0)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 0)"
           >
             OFF
           </button>

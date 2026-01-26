@@ -1,4 +1,4 @@
-import type { Device } from "~/models/device";
+import type { Device, GPIO } from "~/models/device";
 import {
   MessageTopic,
   type GPIOStateMessage,
@@ -40,49 +40,78 @@ export const useDeviceStore = () => {
     }
   };
 
+  const setGpioState = (deviceId: string, gpioStates: GPIO[]) => {
+    const device = devices.value.find((d) => d.id === deviceId);
+    if (!device) return;
+
+    gpioStates.forEach((gpioState) => {
+      const gpio = device.gpios.find(
+        (g) => g.pinNumber === gpioState.pinNumber,
+      );
+      if (gpio) {
+        gpio.state = gpioState.state;
+      } else {
+        device.gpios.push({
+          pinNumber: gpioState.pinNumber,
+          state: gpioState.state,
+          group: "none",
+          label: "",
+        });
+      }
+    });
+  };
+
   const addStatusMessage = (deviceId: string, message: StatusMessage) => {
     const device = devices.value.find((d) => d.id === deviceId);
-    if (device) {
-      let statusMessages = device.messages.find(
-        (msg) => msg.topic === MessageTopic.STATUS
-      );
-      if (!statusMessages) {
-        statusMessages = { topic: MessageTopic.STATUS, messages: [] };
-        device.messages.push(statusMessages);
-      }
-      statusMessages.messages = [message, ...statusMessages.messages].slice(
-        0,
-        10
-      ); // Nur die letzten 10 Nachrichten behalten
+    if (!device) return;
+
+    let statusMessages = device.messages.find(
+      (msg) => msg.topic === MessageTopic.STATUS,
+    );
+    if (!statusMessages) {
+      statusMessages = { topic: MessageTopic.STATUS, messages: [] };
+      device.messages.push(statusMessages);
     }
+    setGpioState(deviceId, message.gpioStates);
+
+    statusMessages.messages = [message, ...statusMessages.messages].slice(
+      0,
+      10,
+    ); // Nur die letzten 10 Nachrichten behalten
   };
 
   const addWifiScanMessage = (deviceId: string, message: WifiScanMessage) => {
     const device = devices.value.find((d) => d.id === deviceId);
-    if (device) {
-      let wifiMessages = device.messages.find(
-        (msg) => msg.topic === MessageTopic.WIFI
-      );
-      if (!wifiMessages) {
-        wifiMessages = { topic: MessageTopic.WIFI, messages: [] };
-        device.messages.push(wifiMessages);
-      }
-      wifiMessages.messages = [message, ...wifiMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
+    if (!device) return;
+    let wifiMessages = device.messages.find(
+      (msg) => msg.topic === MessageTopic.WIFI,
+    );
+    if (!wifiMessages) {
+      wifiMessages = { topic: MessageTopic.WIFI, messages: [] };
+      device.messages.push(wifiMessages);
     }
+    wifiMessages.messages = [message, ...wifiMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
   };
 
   const addGpioStateMessage = (deviceId: string, message: GPIOStateMessage) => {
     const device = devices.value.find((d) => d.id === deviceId);
-    if (device) {
-      let gpioMessages = device.messages.find(
-        (msg) => msg.topic === MessageTopic.GPIO
-      );
-      if (!gpioMessages) {
-        gpioMessages = { topic: MessageTopic.GPIO, messages: [] };
-        device.messages.push(gpioMessages);
-      }
-      gpioMessages.messages = [message, ...gpioMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
+    if (!device) return;
+    let gpioMessages = device.messages.find(
+      (msg) => msg.topic === MessageTopic.GPIO,
+    );
+    if (!gpioMessages) {
+      gpioMessages = { topic: MessageTopic.GPIO, messages: [] };
+      device.messages.push(gpioMessages);
     }
+
+    console.log(
+      "Adding GPIOStateMessage for device",
+      deviceId,
+      message.gpioStates,
+    );
+    setGpioState(deviceId, message.gpioStates);
+
+    gpioMessages.messages = [message, ...gpioMessages.messages].slice(0, 10); // Nur die letzten 10 Nachrichten behalten
   };
 
   const saveDataIntoLocalStorage = () => {
@@ -104,6 +133,6 @@ export const useDeviceStore = () => {
     addWifiScanMessage,
     addGpioStateMessage,
     saveDataIntoLocalStorage,
-    loadDataFromLocalStorage
+    loadDataFromLocalStorage,
   };
 };

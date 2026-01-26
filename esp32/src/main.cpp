@@ -182,10 +182,17 @@ void callback(char* topic, byte* payload, unsigned int length) {
       return; // Ungültige JSON-Nachricht, Funktion beenden
     }
 
-    // Iteriere über jedes Pin-State-Paar im empfangenen JSON (z.B. {"2":"ON", "4":"OFF"})
-    for (JsonPair p : doc.as<JsonObject>()) {
-      int pinNum = String(p.key().c_str()).toInt(); // Extrahiere die Pin-Nummer aus dem JSON-Key
-      String stateStr = p.value().as<String>();     // Extrahiere den Zustand ("ON", "OFF", "1", "0")
+    // Iteriere über jedes GPIO-Steuerobjekt im empfangenen JSON-Array
+    // Format: [{"pinNumber": 2, "state": "ON"}, {"pinNumber": 4, "state": "OFF"}]
+    for (JsonObject pinObj : doc.as<JsonArray>()) {
+      // Extrahiere die Pin-Nummer und den Zustand aus dem Objekt
+      if (!pinObj.containsKey("pinNumber") || !pinObj.containsKey("state")) {
+        Serial.println("Fehler: Fehlende Felder 'pinNumber' oder 'state' in GPIO-Befehl");
+        continue; // Diesen Befehl überspringen
+      }
+
+      int pinNum = pinObj["pinNumber"].as<int>();   // Extrahiere die Pin-Nummer
+      String stateStr = pinObj["state"].as<String>(); // Extrahiere den Zustand ("ON", "OFF", "1", "0")
 
       int newState = LOW; // Standardmäßig LOW
       // Konvertiere den String-Zustand in HIGH/LOW
@@ -346,12 +353,14 @@ void sendHeartbeat() {
   doc["uptime"] = millis() / 1000; // Uptime in Sekunden
   doc["deviceName"] = currentDeviceName; // Name des Geräts
 
-  // Erstellt das verschachtelte GPIO-States-Objekt
-  JsonObject gpio_states_json = doc.createNestedObject("gpioStates");
+  // Erstellt das GPIO-States-Array im neuen Format
+  JsonArray gpio_states_json = doc.createNestedArray("gpioStates");
 
-  // Fügt den Status jedes Pins zum JSON-Objekt hinzu
+  // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
   for (int i = 0; i < NUM_PINS; i++) {
-    gpio_states_json[String(control_pins[i])] = gpio_states[i]; // Pin-Nummer als Key, Zustand als Value (0/1)
+    JsonObject pinObj = gpio_states_json.createNestedObject();
+    pinObj["pinNumber"] = control_pins[i];
+    pinObj["state"] = gpio_states[i];
   }
 
   String payload;
@@ -451,11 +460,14 @@ void processWifiScanResults(int n) {
 void reportGpioStates() {
   // Dynamisches JSON-Dokument für GPIO-Zustände (256 Bytes sind ausreichend)
   DynamicJsonDocument doc(256);
-  JsonObject gpio_states_json = doc.to<JsonObject>(); // Erstellt das Wurzelobjekt
+  JsonObject root = doc.to<JsonObject>(); // Erstellt das Wurzelobjekt
+  JsonArray gpio_states_json = root.createNestedArray("gpioStates");
 
-  // Fügt den Status jedes Pins zum JSON-Objekt hinzu
+  // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
   for (int i = 0; i < NUM_PINS; i++) {
-    gpio_states_json[String(control_pins[i])] = gpio_states[i]; // Pin-Nummer als Key, Zustand als Value (0/1)
+    JsonObject pinObj = gpio_states_json.createNestedObject();
+    pinObj["pinNumber"] = control_pins[i];
+    pinObj["state"] = gpio_states[i];
   }
 
   String payload;

@@ -7,7 +7,7 @@ import {
   type WifiScanMessage,
 } from "~/models/message";
 import ESP32 from "./ESP32.vue";
-import type { GPIOPin, GPIOPinState } from "~/models/device";
+import type { Device, GPIOPin, GPIOPinState, SetGPIO } from "~/models/device";
 
 const { $mqtt, $mqttConnectionState } = useNuxtApp();
 
@@ -43,10 +43,11 @@ onMounted(() => {
     let deviceEntry = devices.value.find(({ id }) => id === deviceId);
 
     if (!deviceEntry) {
-      const newDevice = {
+      const newDevice: Device = {
         id: deviceId,
         name: "",
         lastSeen: null,
+        gpios: [],
         messages: [],
       };
       addDevice(newDevice);
@@ -81,7 +82,7 @@ onMounted(() => {
         if (subTopicType === GPIOSubTopic.STATE) {
           const gpioStateMessage = {
             supTopic: GPIOSubTopic.STATE as const,
-            state: JSON.parse(message.toString()),
+            gpioStates: JSON.parse(message.toString()).gpioStates,
             timestamp: Date.now(),
           };
 
@@ -104,28 +105,24 @@ onUnmounted(() => {
   $mqtt.removeAllListeners("message");
 });
 
-function setGpioPinState(
-  deviceName: string,
-  deviceId: string,
-  pin: GPIOPin,
-  value: GPIOPinState,
-) {
+function setGpioPinState(deviceId: string, pin: GPIOPin, value: GPIOPinState) {
+  const payload: SetGPIO[] = [{ pinNumber: pin, state: value }];
   const topic = `esp32/${deviceId}/gpio/set`;
-  const message = JSON.stringify({ [pin]: value });
+  const message = JSON.stringify(payload);
   $mqtt.publish(topic, message);
 }
 
-function getStatus(deviceName: string, deviceId: string) {
+function getStatus(deviceId: string) {
   const topic = `esp32/${deviceId}/status/get`;
   $mqtt.publish(topic, "");
 }
 
-function getWifiScan(deviceName: string, deviceId: string) {
+function getWifiScan(deviceId: string) {
   const topic = `esp32/${deviceId}/wifi/get`;
   $mqtt.publish(topic, "");
 }
 
-function getGpioStates(deviceName: string, deviceId: string) {
+function getGpioStates(deviceId: string) {
   const topic = `esp32/${deviceId}/gpio/get`;
   $mqtt.publish(topic, "");
 }
@@ -136,25 +133,28 @@ function loadDataFromStorage() {
     initializeStore(JSON.parse(data));
   }
 }
+
+const gpioGroups = computed(() => {
+  const gpios = devices.value.flatMap((device) => device.gpios);
+ 
+  return gpios;
+});
 </script>
 
 <template>
-  <div id="devices" class="mt-[92px] flex flex-col items-center">
+  <div class="mt-[92px] flex flex-col items-center">
     <div class="w-full flex flex-wrap justify-center">
+      <!-- <pre>{{ gpioGroups }}</pre> -->
       <template v-for="device in devices" :key="device.id">
         <ESP32
-          :id="device.id"
-          :name="device.name"
-          :messages="device.messages"
-          :lastSeen="device.lastSeen"
+          :device="device"
           :clientState="$mqttConnectionState"
           @setGpioPin="
-            ({ pin, value }) =>
-              setGpioPinState(device.name, device.id, pin, value)
+            ({ pin, value }) => setGpioPinState(device.id, pin, value)
           "
-          @getStatus="getStatus(device.name, device.id)"
-          @getWifiScan="getWifiScan(device.name, device.id)"
-          @getGpioStates="getGpioStates(device.name, device.id)"
+          @getStatus="getStatus(device.id)"
+          @getWifiScan="getWifiScan(device.id)"
+          @getGpioStates="getGpioStates(device.id)"
         />
       </template>
     </div>

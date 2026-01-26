@@ -1,4 +1,4 @@
-import type { DeviceStatus, GPIOPin, GPIOPinState, WLANNetwork } from "./device";
+import type { DeviceStatus, GPIO, GPIOPin, GPIOPinState, WLANNetwork } from "./device";
 
 export enum MessageTopic {
   STATUS = "status",
@@ -28,10 +28,8 @@ export interface StatusMessage {
   uptime: number;
   timestamp: number;
   deviceName: string;
-  gpioStates: Record<GPIOPin, GPIOPinState>;
+  gpioStates: GPIO[];
 }
-
-
 
 export interface WifiScanMessage {
   supTopic: WifiSubTopic.SCAN;
@@ -41,7 +39,7 @@ export interface WifiScanMessage {
 
 export interface GPIOStateMessage {
   supTopic: GPIOSubTopic.STATE;
-  state: Record<GPIOPin, GPIOPinState>;
+  gpioStates: GPIO[];
   timestamp: number;
 }
 
