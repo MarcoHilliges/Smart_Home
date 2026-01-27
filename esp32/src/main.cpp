@@ -23,7 +23,8 @@ const char* mqtt_pass = MQTT_PASSWORD;      // MQTT-Passwort
 
 // Globale Variablen für die Geräte-ID und MQTT-Topics.
 // Diese werden dynamisch in setup() initialisiert, da deviceId von der MAC abhängt.
-String deviceId;                  // Eindeutige ID für diesen ESP32 (MAC-Adresse)
+String deviceId;                  // Eindeutige Geräte-ID basierend auf der MAC-Adresse
+String topic_status_get_all_sub;  // Topic zum Abonnieren von Anfragen für den Online-Status/Heartbeats aller Geräte
 String topic_status_pub;          // Topic zum Veröffentlichen des Online-Status/Heartbeats
 String topic_status_get_sub;      // Topic zum Abonnieren von Anfragen für den Status
 String topic_wifi_scan_pub;       // Topic zum Veröffentlichen von WiFi-Scan-Ergebnissen
@@ -243,7 +244,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     reportGpioStates();
   }
   // 2. Wenn eine Status-Anfrage empfangen wird (z.B. vom Frontend beim Laden)
-  else if (String(topic) == topic_status_get_sub) {
+  else if (String(topic) == topic_status_get_sub || String(topic) == topic_status_get_all_sub) {
     Serial.println("Anfrage empfangen auf /status/get Topic. Sende Status-Daten...");
     sendHeartbeat(); // Sende einen Heartbeat mit aktuellen Statusinformationen
   }
@@ -332,6 +333,7 @@ void reconnect_mqtt() {
       // bei jedem Reconnect erneuert werden.
       client.subscribe(topic_gpio_set_sub.c_str());     // Abonnieren für GPIO-Steuerbefehle
       client.subscribe(topic_status_get_sub.c_str());   // Abonnieren für Status-Anfragen
+      client.subscribe(topic_status_get_all_sub.c_str()); // Abonnieren für Status-Anfragen aller Geräte
       client.subscribe(topic_wifi_get_sub.c_str());     // Abonnieren für WiFi-Scan-Anfragen
       client.subscribe(topic_gpio_get_sub.c_str());     // Abonnieren für GPIO-Status-Anfragen
       client.subscribe(topic_settings_get_sub.c_str()); // Abonnieren für Settings-Anfragen
@@ -581,7 +583,8 @@ void setup() {
   Serial.print("Generated Device ID: "); Serial.println(deviceId);
   // --- Ende Generierung ---
 
-  // --- MQTT Topics dynamisch initialisieren ---
+  // --- MQTT Topics initialisieren ---
+  topic_status_get_all_sub = "esp32/all/status/get"; // Gemeinsames Topic für alle Geräte
   // Alle Topics basieren auf der generierten eindeutigen deviceId
   topic_status_pub = "esp32/" + deviceId + "/status";
   topic_wifi_scan_pub = "esp32/" + deviceId + "/wifi/scan";

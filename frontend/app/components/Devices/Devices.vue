@@ -106,6 +106,8 @@ onMounted(() => {
     }
     saveDataIntoLocalStorage();
   });
+
+  getStatus("all");
 });
 
 onUnmounted(() => {
