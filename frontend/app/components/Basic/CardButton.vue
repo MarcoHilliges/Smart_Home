@@ -2,15 +2,15 @@
 const props = defineProps<{
   isActive: boolean;
   isSelectable: boolean;
-  generalClasses: string;
+  generalClasses?: string;
   activeClasses?: string;
   selectableClasses?: string;
 }>();
 
 const cssClasses = computed(() => {
     let classes = props.generalClasses || ''
-    if (props.isSelectable) classes += ` selectable ${props.selectableClasses}`
-    if (props.isActive) classes += ` is-active ${props.activeClasses}`
+    if (props.isSelectable) classes += ` selectable ${props.selectableClasses || ''}`
+    if (props.isActive) classes += ` is-active ${props.activeClasses || ''}`
     return classes
 });
 </script>

@@ -9,6 +9,7 @@ import {
 import ESP32 from "./ESP32.vue";
 import type {
   Device,
+  ExtendedGPIO,
   GPIO,
   GPIOGroupId,
   GPIOPin,
@@ -145,11 +146,17 @@ function loadDataFromStorage() {
 
 interface GPIOGroup {
   groupId: GPIOGroupId;
-  gpios: GPIO[];
+  gpios: ExtendedGPIO[];
 }
 
 const gpioGroups = computed(() => {
-  const gpios = devices.value.flatMap((device) => device.gpios);
+  const gpios = devices.value.flatMap((device) =>
+    device.gpios.map((gpio) => ({
+      ...gpio,
+      deviceId: device.id,
+      deviceName: device.name,
+    })),
+  );
   const groups: GPIOGroup[] = [];
   gpios.forEach((gpio) => {
     if (!gpio.group) gpio.group = "none";
@@ -168,8 +175,17 @@ const gpioGroups = computed(() => {
 <template>
   <div class="mt-[92px] flex flex-col items-center">
     <div class="w-full flex flex-wrap justify-center">
-      <template v-for="(gpio, index) in gpioGroups" :key="index">
-        <pre>{{ gpio }}</pre>
+      <template v-for="(group, index) in gpioGroups" :key="index">
+        <h2 class="w-full text-center mb-4">
+          {{
+            group.groupId !== "none" ? group.groupId.toUpperCase() : "UNGROUPED"
+          }}
+        </h2>
+        <div class="w-full flex flex-wrap justify-center">
+          <template v-for="gpio in group.gpios" :key="gpio.pinNumber">
+            <GPIOActorUniversal :gpio="gpio" class="m-8" />
+          </template>
+        </div>
       </template>
 
       <template v-for="device in devices" :key="device.id">

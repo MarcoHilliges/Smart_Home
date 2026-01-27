@@ -10,10 +10,15 @@ export enum GPIOPinState {
 export type GPIOGroupId = "lamp" | "pump" | "none"
 
 export interface GPIO {
-  pinNumber: ESP32GPIOPin
+  pinNumber: GPIOPin
   group?: GPIOGroupId
   label?: string
   state: GPIOPinState
+}
+
+export interface ExtendedGPIO extends GPIO {
+  deviceId: string;
+  deviceName: string;
 }
 
 export type SetGPIO = Pick<GPIO, 'pinNumber' | 'state'>;
