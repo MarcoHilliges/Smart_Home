@@ -57,7 +57,7 @@ const gpioState = computed(() => {
         </span>
       </template>
 
-      <Power :size="24" />
+      <Power :size="30" />
 
       <template #bottom>
         <span class="text-8 text-primary">
