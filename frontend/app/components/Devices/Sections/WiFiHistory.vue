@@ -3,17 +3,18 @@ import { WifiZero, WifiLow, WifiHigh, Wifi } from "lucide-vue-next";
 import type { WifiScanMessage } from "~/models/message";
 
 const props = defineProps<{
+  deviceId: string;
   wiFiScanMessages: WifiScanMessage[];
 }>();
 
 const currentListTimestamp = ref(
-  props.wiFiScanMessages?.[0]?.timestamp || null
+  props.wiFiScanMessages?.[0]?.timestamp || null,
 );
 
 const currentList = computed(() => {
   return (
     props.wiFiScanMessages?.find(
-      (msg) => msg.timestamp === currentListTimestamp.value
+      (msg) => msg.timestamp === currentListTimestamp.value,
     ) || null
   );
 });
@@ -26,27 +27,39 @@ const tabs = computed(() => {
     }))
     .sort((a, b) => b.value - a.value);
 });
+
+watch(
+  () => props.deviceId,
+  () => {
+    currentListTimestamp.value = props.wiFiScanMessages?.[0]?.timestamp || null;
+  },
+);
 </script>
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="flex">
-      <BasicTooltip
-        v-for="(tab, index) in tabs"
-        :key="index"
-        :tooltipText="tab.label"
-        :style="'width: ' + 100 / tabs.length + '%;'"
-        :class="{
-          'border-b border-primary': currentListTimestamp === tab.value,
-          'text-gray-500': currentListTimestamp !== tab.value,
-        }"
-      >
-        <button class="w-full" @click="currentListTimestamp = tab.value">
-          {{ index + 1 }}
-        </button>
-      </BasicTooltip>
+    <div class="flex flex-col p-16 border-b border-primary">
+      <h2>
+        {{ $t("device.tabs.wifi") }}
+      </h2>
+      <div>
+        <BasicTooltip
+          v-for="(tab, index) in tabs"
+          :key="index"
+          :tooltipText="tab.label"
+          :style="'width: ' + 100 / tabs.length + '%;'"
+          :class="{
+            'border-b border-primary': currentListTimestamp === tab.value,
+            'text-gray-500': currentListTimestamp !== tab.value,
+          }"
+        >
+          <button class="w-full" @click="currentListTimestamp = tab.value">
+            {{ index + 1 }}
+          </button>
+        </BasicTooltip>
+      </div>
     </div>
-    <ul class="overflow-y-auto custom-scrollbar">
+    <ul class="flex-grow overflow-y-auto custom-scrollbar">
       <li
         v-for="(network, index) in currentList?.networks || []"
         :key="index"
@@ -57,10 +70,10 @@ const tabs = computed(() => {
             network.rssi >= -50
               ? Wifi
               : network.rssi < -50 && network.rssi >= -65
-              ? WifiHigh
-              : network.rssi < -65 && network.rssi >= -75
-              ? WifiLow
-              : WifiZero
+                ? WifiHigh
+                : network.rssi < -65 && network.rssi >= -75
+                  ? WifiLow
+                  : WifiZero
           "
           class="w-16 h-16"
         />

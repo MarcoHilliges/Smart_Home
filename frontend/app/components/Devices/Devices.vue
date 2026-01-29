@@ -76,6 +76,22 @@ const tabs: {
   },
 ];
 
+const currentDeviceId = ref<string | null>(null);
+const currentDevice = computed(() => {
+  return (
+    devices.value.find((device) => device.id === currentDeviceId.value) || null
+  );
+});
+
+// Wifi
+const wifiScanMessages = computed(() => {
+  return (
+    currentDevice.value?.messages
+      .find((msg) => msg.topic === MessageTopic.WIFI)
+      ?.messages.filter((m) => m.supTopic === WifiSubTopic.SCAN) || []
+  );
+});
+
 onMounted(() => {
   loadDataFromStorage();
   devices.value.forEach((device) => {
@@ -218,12 +234,17 @@ const gpioGroups = computed(() => {
 
   return groups;
 });
+
+function changeTab(tab: ContentTab) {
+  if (devices.value?.[0]) currentDeviceId.value = devices.value[0].id;
+  activeTab.value = tab;
+}
 </script>
 
 <template>
-  <div class="pt-[92px] h-full flex flex-col items-center">
-    <div class="w-full flex flex-wrap justify-center">
-      <template v-if="activeTab === 'overview'">
+  <div class="flex flex-col items-center h-full">
+    <div class="w-full flex flex-grow p-24 overflow-auto custom-scrollbar">
+      <div v-if="activeTab === 'overview'">
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">
             <template v-for="gpio in group.gpios" :key="gpio.pinNumber">
@@ -238,26 +259,53 @@ const gpioGroups = computed(() => {
             </template>
           </div>
         </template>
-      </template>
+      </div>
 
       <template v-else>
-        <template v-for="device in devices" :key="device.id">
-          <ESP32
-            :device="device"
-            :clientState="$mqttConnectionState"
-            :activeTab="activeTab"
-            @setGpioPin="
-              ({ pin, value }) => setGpioPinState(device.id, pin, value)
-            "
-            @getStatus="getStatus(device.id)"
-            @getWifiScan="getWifiScan(device.id)"
-            @getGpioStates="getGpioStates(device.id)"
-          />
-        </template>
+        <BasicCard class="flex h-full w-full">
+          <div class="w-[200px] p-16 border-r border-primary ">
+            <h2>
+              {{ t("common.devices") }}
+            </h2>
+            <ul>
+              <li
+                v-for="device in devices"
+                :key="device.id"
+                @click="currentDeviceId = device.id"
+              >
+                <button @click="currentDeviceId = device.id">
+                  {{ device.name }}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex-grow overflow-hidden">
+            <DevicesSectionsWiFiHistory
+              v-if="currentDevice"
+              :device-id="currentDevice.id"
+              :wi-fi-scan-messages="wifiScanMessages"
+            />
+          </div>
+        </BasicCard>
       </template>
+
+      <!-- <template v-for="device in devices" :key="device.id">
+        <ESP32
+          :device="device"
+          :clientState="$mqttConnectionState"
+          :activeTab="activeTab"
+          @setGpioPin="
+            ({ pin, value }) => setGpioPinState(device.id, pin, value)
+          "
+          @getStatus="getStatus(device.id)"
+          @getWifiScan="getWifiScan(device.id)"
+          @getGpioStates="getGpioStates(device.id)"
+        />
+      </template> -->
     </div>
 
-    <div class="mt-auto flex gap-16 p-16">
+    <div class="flex gap-16 p-16">
       <template v-for="tab in tabs" :key="tab.value">
         <BasicCard class="h-[100px] w-[100px] flex justify-center items-center">
           <BasicCardButton
@@ -265,7 +313,7 @@ const gpioGroups = computed(() => {
             :is-selectable="true"
             general-classes="w-full h-full"
             :activeClasses="tab.activeClasses + ' pointer-events-none'"
-            @click="activeTab = tab.value"
+            @click="changeTab(tab.value)"
           >
             <template #top>
               <span class="text-12 text-primary">{{

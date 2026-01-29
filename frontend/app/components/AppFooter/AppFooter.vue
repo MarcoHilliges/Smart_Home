@@ -5,7 +5,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="flex p-16 justify-center gap-16">
+  <div class="flex p-16 justify-center gap-16 border-t border-primary dark:border-primary-light">
     <NuxtLink
       to="https://github.com/MarcoHilliges"
       target="_blank"
