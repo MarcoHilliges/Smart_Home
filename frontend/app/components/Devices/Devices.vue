@@ -48,30 +48,35 @@ const tabs: {
   value: ContentTab;
   icon: FunctionalComponent<LucideProps>;
   activeClasses?: string;
+  lightColor?: "blue" | "green" | "yellow" | "red";
 }[] = [
   {
     label: t("device.tabs.overview"),
     value: "overview",
     icon: PanelsLeftBottom,
     activeClasses: "text-success",
+    lightColor: "green",
   },
   {
     label: t("device.tabs.wifi"),
     value: "wifi",
     icon: Wifi,
     activeClasses: "text-secondary",
+    lightColor: "blue",
   },
   {
     label: t("device.tabs.gpio"),
     value: "gpio",
     icon: Cpu,
     activeClasses: "text-warning",
+    lightColor: "yellow",
   },
   {
     label: t("device.tabs.settings"),
     value: "settings",
     icon: Settings,
     activeClasses: "text-error",
+    lightColor: "red",
   },
 ];
 
@@ -243,7 +248,9 @@ function changeTab(tab: ContentTab) {
 
 <template>
   <div class="flex flex-col items-center h-full">
-    <div class="w-full flex flex-grow p-24 justify-center overflow-auto custom-scrollbar">
+    <div
+      class="w-full flex flex-grow p-24 justify-center overflow-auto custom-scrollbar"
+    >
       <div v-if="activeTab === 'overview'">
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">
@@ -279,7 +286,7 @@ function changeTab(tab: ContentTab) {
                   active-classes="active"
                   @click="
                     () => {
-                      if (device.deviceStatus !== 'online') return
+                      if (device.deviceStatus !== 'online') return;
                       currentDeviceId = device.id;
                     }
                   "
@@ -301,12 +308,12 @@ function changeTab(tab: ContentTab) {
               <DevicesSectionsGpioDetailList
                 v-else-if="activeTab === 'gpio'"
                 :device-id="currentDevice.id"
+                :device-name="currentDevice.name"
                 :gpios="currentDevice.gpios"
                 :device-status="currentDevice.deviceStatus"
-                :gpio-state-messages="
-                  currentDevice.messages.find(
-                    (msg) => msg.topic === MessageTopic.GPIO,
-                  )?.messages || []
+                @set-gpio-pin="
+                  ({ deviceId, pin, value }) =>
+                    setGpioPinState(deviceId, pin, value)
                 "
               />
 
@@ -323,7 +330,11 @@ function changeTab(tab: ContentTab) {
 
     <div class="flex gap-16 p-16">
       <template v-for="tab in tabs" :key="tab.value">
-        <BasicCard :status="activeTab === tab.value ? 1 : 0" class="h-[100px] w-[100px] flex justify-center items-center">
+        <BasicCard
+          :light="activeTab === tab.value"
+          :light-color="tab.lightColor"
+          class="h-[100px] w-[100px] flex justify-center items-center"
+        >
           <BasicCardButton
             :isActive="activeTab === tab.value"
             :is-selectable="true"

@@ -12,6 +12,7 @@ const props = defineProps<{
   cardHeight?: number | string;
 }>();
 
+const toast = useToast();
 const { t } = useI18n();
 
 const dimensions = computed(() => {
@@ -32,6 +33,34 @@ const dimensions = computed(() => {
 const gpioState = computed(() => {
   return !!props.gpio.state;
 });
+
+const isChangingState = ref<boolean>(false);
+
+function setGpioPin() {
+  if (isChangingState.value) return;
+  isChangingState.value = true;
+  emits("setGpioPin", {
+    deviceId: props.gpio.deviceId,
+    pin: props.gpio.pinNumber,
+    value: gpioState.value ? 0 : 1,
+  });
+}
+
+watch(
+  () => props.gpio.state,
+  () => {
+    isChangingState.value = false;
+          toast.success({
+        title: props.gpio.deviceName,
+        message: t("device.setGpio.successText", {
+          pinName: "PIN " + props.gpio.pinNumber,
+          state: props.gpio.state
+            ? t("common.activated")
+            : t("common.deactivated"),
+        }),
+      });
+  },
+);
 </script>
 
 <template>
@@ -43,7 +72,8 @@ const gpioState = computed(() => {
     "
   >
     <BasicCard
-      :status="props.gpio.state"
+      :light="gpioState && isChangingState === false"
+      light-color="green"
       :style="{ width: dimensions.width, height: dimensions.height }"
       class="flex justify-center items-center"
       :class="{
@@ -55,13 +85,7 @@ const gpioState = computed(() => {
         :is-selectable="true"
         general-classes="w-full h-full"
         active-classes="text-success"
-        @click="
-          $emit('setGpioPin', {
-            deviceId: props.gpio.deviceId,
-            pin: props.gpio.pinNumber,
-            value: gpioState ? 0 : 1,
-          })
-        "
+        @click="setGpioPin()"
       >
         <template #top>
           <span class="text-12 text-primary">
