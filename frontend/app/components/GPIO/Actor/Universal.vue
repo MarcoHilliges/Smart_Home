@@ -12,6 +12,8 @@ const props = defineProps<{
   cardHeight?: number | string;
 }>();
 
+const { t } = useI18n();
+
 const dimensions = computed(() => {
   return {
     width: props.cardWidth
@@ -33,37 +35,48 @@ const gpioState = computed(() => {
 </script>
 
 <template>
-  <BasicCard
-    :device-status="props.gpio.deviceStatus"
-    :style="{ width: dimensions.width, height: dimensions.height }"
-    class="flex justify-center items-center"
+  <BasicTooltip
+    :tooltip-text="
+      props.gpio.deviceStatus !== 'online'
+        ? t(`common.status.${props.gpio.deviceStatus}`)
+        : ''
+    "
   >
-    <BasicCardButton
-      :is-active="gpioState"
-      :is-selectable="true"
-      general-classes="w-full h-full"
-      active-classes="text-success"
-      @click="
-        $emit('setGpioPin', {
-          deviceId: props.gpio.deviceId,
-          pin: props.gpio.pinNumber,
-          value: gpioState ? 0 : 1,
-        })
-      "
+    <BasicCard
+      :status="props.gpio.state"
+      :style="{ width: dimensions.width, height: dimensions.height }"
+      class="flex justify-center items-center"
+      :class="{
+        'opacity-70 pointer-events-none': props.gpio.deviceStatus === 'offline',
+      }"
     >
-      <template #top>
-        <span class="text-12 text-primary">
-          {{ props.gpio.label || `PIN ${props.gpio.pinNumber}` }}
-        </span>
-      </template>
+      <BasicCardButton
+        :is-active="gpioState"
+        :is-selectable="true"
+        general-classes="w-full h-full"
+        active-classes="text-success"
+        @click="
+          $emit('setGpioPin', {
+            deviceId: props.gpio.deviceId,
+            pin: props.gpio.pinNumber,
+            value: gpioState ? 0 : 1,
+          })
+        "
+      >
+        <template #top>
+          <span class="text-12 text-primary">
+            {{ props.gpio.label || `PIN ${props.gpio.pinNumber}` }}
+          </span>
+        </template>
 
-      <Power :size="30" />
+        <Power :size="30" />
 
-      <template #bottom>
-        <span class="text-8 text-primary">
-          {{ props.gpio.deviceName }}
-        </span>
-      </template>
-    </BasicCardButton>
-  </BasicCard>
+        <template #bottom>
+          <span class="text-8 text-primary">
+            {{ props.gpio.deviceName }}
+          </span>
+        </template>
+      </BasicCardButton>
+    </BasicCard>
+  </BasicTooltip>
 </template>

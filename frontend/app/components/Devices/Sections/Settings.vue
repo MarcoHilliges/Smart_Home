@@ -9,7 +9,7 @@ const { t } = useI18n();
 const props = defineProps<{
   deviceStatus: DeviceStatus;
   deviceId: string;
-  deviceName: string;
+  deviceName?: string;
 }>();
 
 const { updateDeviceName } = useDeviceStore();
@@ -20,7 +20,7 @@ const settingsItems = ref<SettingsItem[]>([
     key: "deviceName",
     label: t("device.settings.deviceName"),
     description: t("device.settings.deviceNameDescription"),
-    value: props.deviceName,
+    value: null,
     valueType: "string",
     min: 1,
     inactive: false,

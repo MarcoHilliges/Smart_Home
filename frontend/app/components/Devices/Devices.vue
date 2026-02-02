@@ -6,12 +6,10 @@ import {
   type StatusMessage,
   type WifiScanMessage,
 } from "~/models/message";
-import ESP32 from "./ESP32.vue";
 import type {
   ContentTab,
   Device,
   ExtendedGPIO,
-  GPIO,
   GPIOGroupId,
   GPIOPin,
   GPIOPinState,
@@ -26,6 +24,8 @@ import {
   type LucideProps,
 } from "lucide-vue-next";
 import type { FunctionalComponent } from "vue";
+import CardButton from "../Basic/CardButton.vue";
+import { dev } from "node:process";
 
 const { $mqtt, $mqttConnectionState } = useNuxtApp();
 
@@ -96,6 +96,7 @@ onMounted(() => {
   loadDataFromStorage();
   devices.value.forEach((device) => {
     device.lastSeen = null;
+    device.deviceStatus = "offline";
   });
 
   if (!$mqtt) {
@@ -263,46 +264,58 @@ function changeTab(tab: ContentTab) {
 
       <template v-else>
         <BasicCard class="flex h-full w-full">
-          <div class="w-[200px] p-16 border-r border-primary ">
-            <h2>
+          <div class="w-[200px] p-16 border-r border-primary">
+            <h2 class="mb-24">
               {{ t("common.devices") }}
             </h2>
-            <ul>
+            <ul class="flex flex-col gap-8">
               <li
                 v-for="device in devices"
                 :key="device.id"
                 @click="currentDeviceId = device.id"
               >
-                <button @click="currentDeviceId = device.id">
+                <CardButton
+                  :is-active="currentDeviceId === device.id"
+                  :is-selectable="currentDeviceId !== device.id"
+                  general-classes="w-full rounded-md light-effect"
+                  active-classes="text-success"
+                  @click="currentDeviceId = device.id"
+                >
                   {{ device.name }}
-                </button>
+                </CardButton>
               </li>
             </ul>
           </div>
 
           <div class="flex-grow overflow-hidden">
-            <DevicesSectionsWiFiHistory
-              v-if="currentDevice"
-              :device-id="currentDevice.id"
-              :wi-fi-scan-messages="wifiScanMessages"
-            />
+            <template v-if="currentDevice">
+              <DevicesSectionsWiFiHistory
+                v-if="activeTab === 'wifi'"
+                :device-id="currentDevice.id"
+                :wi-fi-scan-messages="wifiScanMessages"
+              />
+
+              <DevicesSectionsGpioDetailList
+                v-else-if="activeTab === 'gpio'"
+                :device-id="currentDevice.id"
+                :gpios="currentDevice.gpios"
+                :device-status="currentDevice.deviceStatus"
+                :gpio-state-messages="
+                  currentDevice.messages.find(
+                    (msg) => msg.topic === MessageTopic.GPIO,
+                  )?.messages || []
+                "
+              />
+
+              <DevicesSectionsSettings
+                v-else-if="activeTab === 'settings'"
+                :device-id="currentDevice.id"
+                :device-status="currentDevice.deviceStatus"
+              />
+            </template>
           </div>
         </BasicCard>
       </template>
-
-      <!-- <template v-for="device in devices" :key="device.id">
-        <ESP32
-          :device="device"
-          :clientState="$mqttConnectionState"
-          :activeTab="activeTab"
-          @setGpioPin="
-            ({ pin, value }) => setGpioPinState(device.id, pin, value)
-          "
-          @getStatus="getStatus(device.id)"
-          @getWifiScan="getWifiScan(device.id)"
-          @getGpioStates="getGpioStates(device.id)"
-        />
-      </template> -->
     </div>
 
     <div class="flex gap-16 p-16">

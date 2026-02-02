@@ -1,30 +1,32 @@
 <script setup lang="ts">
-import type { DeviceStatus } from "~/models/device";
+import type { DeviceStatus, GPIOPinState } from "~/models/device";
 
 const props = defineProps<{
-  deviceStatus?: DeviceStatus;
+  status?: GPIOPinState;
 }>();
 
 const { $mqttConnectionState } = useNuxtApp();
 
 const indicatorColor = {
-  online: "#15D3A5",
-  offline: "#D5D5E2",
-  error: "#E51F2B",
+  0: "#D5D5E2",
+  1: "#15D3A5",
 };
 
 const cardShadow = computed(() => {
-  const shadow = "0 0 8px #c5c5ff";
+  const shadow = `0 0px 12px 2px ${indicatorColor[0]}`;
   const clientState = $mqttConnectionState.value;
-  if (props.deviceStatus) {
-    return `${shadow}, 0 -4px 6px 0px ${clientState === 'connected' ? indicatorColor[props.deviceStatus] : indicatorColor['offline']}`;
+  if (props.status !== undefined) {
+    return `0 0px 12px 2px ${clientState === "connected" ? indicatorColor[props.status] : indicatorColor[0]}`;
   }
   return shadow;
 });
 </script>
 
 <template>
-  <div class="rounded-md card-color light-effect" :style="{ boxShadow: cardShadow }">
+  <div
+    class="rounded-md card-color light-effect"
+    :style="{ boxShadow: cardShadow }"
+  >
     <slot>Content</slot>
   </div>
 </template>

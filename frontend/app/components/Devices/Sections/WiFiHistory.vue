@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { WifiZero, WifiLow, WifiHigh, Wifi } from "lucide-vue-next";
+import CardButton from "~/components/Basic/CardButton.vue";
 import type { WifiScanMessage } from "~/models/message";
 
 const props = defineProps<{
@@ -49,13 +50,19 @@ watch(
           :tooltipText="tab.label"
           :style="'width: ' + 100 / tabs.length + '%;'"
           :class="{
-            'border-b border-primary': currentListTimestamp === tab.value,
-            'text-gray-500': currentListTimestamp !== tab.value,
+            '': currentListTimestamp === tab.value,
+            '': currentListTimestamp !== tab.value,
           }"
         >
-          <button class="w-full" @click="currentListTimestamp = tab.value">
+          <CardButton
+            :isActive="currentListTimestamp === tab.value"
+            :isSelectable="currentListTimestamp !== tab.value"
+            general-classes="w-3/4 min-w-32 rounded-md light-effect"
+            active-classes="text-success"
+            @click="currentListTimestamp = tab.value"
+          >
             {{ index + 1 }}
-          </button>
+          </CardButton>
         </BasicTooltip>
       </div>
     </div>

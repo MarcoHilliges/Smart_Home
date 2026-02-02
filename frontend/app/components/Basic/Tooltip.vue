@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
-
 const props = defineProps({
   tooltipText: {
     type: String,
@@ -69,7 +67,7 @@ const updateTooltipPosition = () => {
 const handleMouseEnter = () => {
   if (mouseLeaveTimeout) clearTimeout(mouseLeaveTimeout);
   mouseEnterTimeout = setTimeout(() => {
-    showTooltip.value = true;
+    showTooltip.value = !!props.tooltipText;
     nextTick(() => {
       updateTooltipPosition();
     });

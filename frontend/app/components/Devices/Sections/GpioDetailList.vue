@@ -13,9 +13,10 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps<{
-  deviceName: string;
+  deviceId: string;
+  deviceName?: string;
   gpios: GPIO[];
-  gpioStateMessages: GPIOStateMessage[];
+  gpioStateMessages?: GPIOStateMessage[];
   deviceStatus: DeviceStatus;
 }>();
 
