@@ -43,27 +43,25 @@ watch(
       <h2>
         {{ $t("device.tabs.wifi") }}
       </h2>
-      <div>
-        <BasicTooltip
+      <div class="flex justify-center gap-8">
+        <div
           v-for="(tab, index) in tabs"
           :key="index"
-          :tooltipText="tab.label"
           :style="'width: ' + 100 / tabs.length + '%;'"
-          :class="{
-            '': currentListTimestamp === tab.value,
-            '': currentListTimestamp !== tab.value,
-          }"
+          class="flex justify-center min-w-32 max-w-[120px]"
         >
-          <CardButton
-            :isActive="currentListTimestamp === tab.value"
-            :isSelectable="currentListTimestamp !== tab.value"
-            general-classes="w-3/4 min-w-32 rounded-md light-effect"
-            active-classes="text-success"
-            @click="currentListTimestamp = tab.value"
-          >
-            {{ index + 1 }}
-          </CardButton>
-        </BasicTooltip>
+          <BasicTooltip :tooltipText="tab.label" class="w-full">
+            <CardButton
+              :isActive="currentListTimestamp === tab.value"
+              :isSelectable="currentListTimestamp !== tab.value"
+              general-classes="card-button-2"
+              active-classes="active"
+              @click="currentListTimestamp = tab.value"
+            >
+              {{ index + 1 }}
+            </CardButton>
+          </BasicTooltip>
+        </div>
       </div>
     </div>
     <ul class="flex-grow overflow-y-auto custom-scrollbar">

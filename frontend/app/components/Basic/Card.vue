@@ -1,11 +1,7 @@
 <script setup lang="ts">
-import type { DeviceStatus, GPIOPinState } from "~/models/device";
-
 const props = defineProps<{
-  status?: GPIOPinState;
+  status?: 0 | 1;
 }>();
-
-const { $mqttConnectionState } = useNuxtApp();
 
 const indicatorColor = {
   0: "#D5D5E2",
@@ -13,10 +9,9 @@ const indicatorColor = {
 };
 
 const cardShadow = computed(() => {
-  const shadow = `0 0px 12px 2px ${indicatorColor[0]}`;
-  const clientState = $mqttConnectionState.value;
-  if (props.status !== undefined) {
-    return `0 0px 12px 2px ${clientState === "connected" ? indicatorColor[props.status] : indicatorColor[0]}`;
+  const shadow = ``;
+  if (props.status === 1) {
+    return `0 0px 8px 2px ${indicatorColor[props.status]}`;
   }
   return shadow;
 });

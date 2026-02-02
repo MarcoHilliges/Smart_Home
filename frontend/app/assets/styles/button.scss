@@ -1,0 +1,8 @@
+.card-button-2 {
+    
+    @apply w-full rounded-md light-effect bg-border h-32;
+
+    &.active {
+        @apply text-secondary font-semibold;
+    }
+}

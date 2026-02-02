@@ -275,8 +275,8 @@ function changeTab(tab: ContentTab) {
                     currentDeviceId !== device.id &&
                     device.deviceStatus === 'online'
                   "
-                  general-classes="w-full rounded-md light-effect"
-                  active-classes="text-success"
+                  general-classes="card-button-2"
+                  active-classes="active"
                   @click="
                     () => {
                       if (device.deviceStatus !== 'online') return
@@ -323,7 +323,7 @@ function changeTab(tab: ContentTab) {
 
     <div class="flex gap-16 p-16">
       <template v-for="tab in tabs" :key="tab.value">
-        <BasicCard class="h-[100px] w-[100px] flex justify-center items-center">
+        <BasicCard :status="activeTab === tab.value ? 1 : 0" class="h-[100px] w-[100px] flex justify-center items-center">
           <BasicCardButton
             :isActive="activeTab === tab.value"
             :is-selectable="true"
