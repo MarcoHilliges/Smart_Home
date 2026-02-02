@@ -11,6 +11,7 @@ const cssClasses = computed(() => {
   let classes = props.generalClasses || "";
   if (props.isSelectable)
     classes += ` selectable ${props.selectableClasses || ""}`;
+  else classes += ` pointer-events-none`;
   if (props.isActive) classes += ` ${props.activeClasses || ""}`;
   return classes;
 });

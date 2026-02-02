@@ -25,9 +25,8 @@ import {
 } from "lucide-vue-next";
 import type { FunctionalComponent } from "vue";
 import CardButton from "../Basic/CardButton.vue";
-import { dev } from "node:process";
 
-const { $mqtt, $mqttConnectionState } = useNuxtApp();
+const { $mqtt } = useNuxtApp();
 
 const { t } = useI18n();
 
@@ -244,7 +243,7 @@ function changeTab(tab: ContentTab) {
 
 <template>
   <div class="flex flex-col items-center h-full">
-    <div class="w-full flex flex-grow p-24 overflow-auto custom-scrollbar">
+    <div class="w-full flex flex-grow p-24 justify-center overflow-auto custom-scrollbar">
       <div v-if="activeTab === 'overview'">
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">
@@ -269,17 +268,21 @@ function changeTab(tab: ContentTab) {
               {{ t("common.devices") }}
             </h2>
             <ul class="flex flex-col gap-8">
-              <li
-                v-for="device in devices"
-                :key="device.id"
-                @click="currentDeviceId = device.id"
-              >
+              <li v-for="device in devices" :key="device.id">
                 <CardButton
                   :is-active="currentDeviceId === device.id"
-                  :is-selectable="currentDeviceId !== device.id"
+                  :is-selectable="
+                    currentDeviceId !== device.id &&
+                    device.deviceStatus === 'online'
+                  "
                   general-classes="w-full rounded-md light-effect"
                   active-classes="text-success"
-                  @click="currentDeviceId = device.id"
+                  @click="
+                    () => {
+                      if (device.deviceStatus !== 'online') return
+                      currentDeviceId = device.id;
+                    }
+                  "
                 >
                   {{ device.name }}
                 </CardButton>
