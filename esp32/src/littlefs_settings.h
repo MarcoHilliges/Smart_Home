@@ -18,10 +18,10 @@ struct DeviceSettings {
   String deviceName = "ESP32-Dashboard";
 };
 
-// Struktur für GPIO-Metadaten (Label / Group)
+// Struktur für GPIO-Metadaten (Label / Mode)
 struct GPIOConfig {
   int pinNumber = -1;
-  String group = "none"; // "lamp" | "pump" | "none"
+  String mode = "none"; // "lamp" | "pump" | "none"
   String label = "";
 };
 
@@ -75,7 +75,7 @@ bool saveSettings() {
   for (int i = 0; i < NUM_PINS; i++) {
     JsonObject g = gpioArray.createNestedObject();
     g["pinNumber"] = gpioConfigs[i].pinNumber;
-    g["group"] = gpioConfigs[i].group;
+    g["mode"] = gpioConfigs[i].mode;
     g["label"] = gpioConfigs[i].label;
   }
 
@@ -157,7 +157,7 @@ bool loadSettings() {
     for (JsonObject g : ga) {
       if (idx >= NUM_PINS) break;
       if (g.containsKey("pinNumber")) gpioConfigs[idx].pinNumber = g["pinNumber"].as<int>();
-      if (g.containsKey("group")) gpioConfigs[idx].group = g["group"].as<String>();
+      if (g.containsKey("mode")) gpioConfigs[idx].mode = g["mode"].as<String>();
       if (g.containsKey("label")) gpioConfigs[idx].label = g["label"].as<String>();
       idx++;
     }
@@ -199,7 +199,7 @@ void printSettings() {
   Serial.println("GPIO Metadaten:");
   for (int i = 0; i < NUM_PINS; i++) {
     Serial.print("  Pin "); Serial.print(gpioConfigs[i].pinNumber);
-    Serial.print(" - Group: "); Serial.print(gpioConfigs[i].group);
+    Serial.print(" - Mode: "); Serial.print(gpioConfigs[i].mode);
     Serial.print(" - Label: "); Serial.println(gpioConfigs[i].label);
   }
   Serial.println("===========================================\n");

@@ -9,7 +9,7 @@ export enum GPIOPinState {
   HIGH = 1,
 }
 export type GPIOModeActor =
-  | "lamp"
+  | "light"
   | "pump"
   | "fan"
   | "relay"

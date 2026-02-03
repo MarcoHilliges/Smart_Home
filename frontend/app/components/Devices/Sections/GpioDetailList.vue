@@ -78,40 +78,48 @@ onBeforeUnmount(() => {
       <li
         v-for="gpio in gpioPinStates"
         :key="gpio.pinNumber"
-        class="flex items-center justify-between gap-12 py-8 border-b last:border-0 px-16"
+        class="flex items-center gap-12 py-8 border-b last:border-0 px-16"
       >
-        <span class="whitespace-nowrap">Pin {{ gpio.pinNumber }}</span>
-
-        <div>
-          <input :value="gpio.label" type="text" />
+        <div class="w-[100px]">
+          <span class="whitespace-nowrap">Pin {{ gpio.pinNumber }}</span>
         </div>
 
-        <div>
-          <label :for="`gpio-mode-select-${gpio.pinNumber}`">Choose a pet:</label>
+        <div class="w-[200px]">
+          <input
+            :id="`gpio-label-input-${gpio.pinNumber}`"
+            :value="gpio.label"
+            type="text"
+          />
+        </div>
+
+        <div class="w-[150px]">
+          <label :for="`gpio-mode-select-${gpio.pinNumber}`">
+            {{ t("device.gpioMode") }}
+          </label>
 
           <select name="modes" :id="`gpio-mode-select-${gpio.pinNumber}`">
-            <option value="none">--Please choose an option--</option>
-            <optgroup label="Actor">
+            <option value="none">{{ t("common.deactivated") }}</option>
+            <optgroup :label="t('device.actor.actor')">
               <option
                 v-for="mode in gpioModesActor"
                 :key="mode.value"
                 :value="mode.value"
               >
-                {{ mode.label }}
+                {{ t(mode.i18nKey) }}
               </option>
             </optgroup>
-            <optgroup label="Sensor">
+            <optgroup :label="t('device.sensor.sensor')">
               <option
                 v-for="mode in gpioModesSensor"
                 :key="mode.value"
                 :value="mode.value"
               >
-                {{ mode.label }}
+                {{ t(mode.i18nKey) }}
               </option>
             </optgroup>
           </select>
         </div>
-        <div class="flex items-center justify-between text-10">
+        <div class="flex items-center justify-between text-10 ml-auto">
           <button
             class="flex items-center justify-center w-24 h-20 rounded-l-md hover:text-success-active"
             :class="{

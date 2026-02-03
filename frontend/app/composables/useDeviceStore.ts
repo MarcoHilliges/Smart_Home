@@ -10,26 +10,26 @@ const devices = ref<Device[]>([]);
 let isInitialized = false;
 const localStorageKey = "Device_Data";
 
-const gpioModesActor: { label: string, value: GPIOModeActor}[] = [
-  { label: "device.actor.lamp", value: "lamp" },
-  { label: "device.actor.pump", value: "pump" },
-  { label: "device.actor.fan", value: "fan" },
-  { label: "device.actor.relay", value: "relay" },
-  { label: "device.actor.buzzer", value: "buzzer" },
-  { label: "device.actor.led strip", value: "led_strip" },
-  { label: "device.actor.valve", value: "valve" },
-  { label: "device.actor.heater", value: "heater" },
+const gpioModesActor: { i18nKey: string, value: GPIOModeActor}[] = [
+  { i18nKey: "device.actor.light", value: "light" },
+  { i18nKey: "device.actor.pump", value: "pump" },
+  { i18nKey: "device.actor.fan", value: "fan" },
+  { i18nKey: "device.actor.relay", value: "relay" },
+  { i18nKey: "device.actor.buzzer", value: "buzzer" },
+  { i18nKey: "device.actor.led_strip", value: "led_strip" },
+  { i18nKey: "device.actor.valve", value: "valve" },
+  { i18nKey: "device.actor.heater", value: "heater" },
 ]
 
-const gpioModesSensor: { label: string, value: GPIOModeSensor}[] = [
-  { label: "device.sensor.temperature", value: "temperature" },
-  { label: "device.sensor.humidity", value: "humidity" },
-  { label: "device.sensor.light", value: "light" },
-  { label: "device.sensor.soil moisture", value: "soil_moisture" },
-  { label: "device.sensor.water level", value: "water_level" },
-  { label: "device.sensor.motion", value: "motion" },
-  { label: "device.sensor.door contact", value: "door_contact" },
-  { label: "device.sensor.touch", value: "touch" },
+const gpioModesSensor: { i18nKey: string, value: GPIOModeSensor}[] = [
+  { i18nKey: "device.sensor.temperature", value: "temperature" },
+  { i18nKey: "device.sensor.humidity", value: "humidity" },
+  { i18nKey: "device.sensor.light", value: "light" },
+  { i18nKey: "device.sensor.soil_moisture", value: "soil_moisture" },
+  { i18nKey: "device.sensor.water_level", value: "water_level" },
+  { i18nKey: "device.sensor.motion", value: "motion" },
+  { i18nKey: "device.sensor.door_contact", value: "door_contact" },
+  { i18nKey: "device.sensor.touch", value: "touch" },
 ]
 
 export const useDeviceStore = () => {

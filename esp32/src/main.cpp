@@ -69,7 +69,7 @@ void sendDeviceSettings() {
   for (int i = 0; i < NUM_PINS; i++) {
     JsonObject g = gpioArray.createNestedObject();
     g["pinNumber"] = gpioConfigs[i].pinNumber;
-    g["group"] = gpioConfigs[i].group;
+    g["mode"] = gpioConfigs[i].mode;
     g["label"] = gpioConfigs[i].label;
   }
 
@@ -124,6 +124,53 @@ void updateDeviceSettings(String payloadString) {
       settingsChanged = true;
     } else {
       Serial.print("Ungültiges oder unverändertes WiFi Scan Intervall: "); Serial.println(newInterval);
+    }
+  }
+
+  // Aktualisiere GPIO-Metadaten falls vorhanden
+  if (doc.containsKey("gpioConfigs") && doc["gpioConfigs"].is<JsonArray>()) {
+    JsonArray gpioArray = doc["gpioConfigs"].as<JsonArray>();
+
+    for (JsonObject gpio : gpioArray) {
+      bool pinChanged = false;
+
+      int pinNum = gpio["pinNumber"].as<int>();
+
+      int foundIdx = -1;
+      for (int i = 0; i < NUM_PINS; i++) {
+        if (gpioConfigs[i].pinNumber == pinNum) {
+          foundIdx = i;
+          break;
+        }
+      }
+      if (foundIdx == -1) {
+        Serial.print("Unbekannte pinNumber in GPIO Metadaten: ");
+        Serial.println(pinNum);
+        continue; // Nächsten Eintrag verarbeiten
+      }
+      if (gpio.containsKey("mode")) {
+        String newMode = gpio["mode"].as<String>();
+        if (newMode != gpioConfigs[foundIdx].mode) {
+          gpioConfigs[foundIdx].mode = newMode;
+          Serial.print("GPIO Pin "); Serial.print(pinNum); Serial.print(" Mode aktualisiert zu: "); Serial.println(newMode);
+          pinChanged = true;
+        }
+      }
+      if (gpio.containsKey("label")) {
+        String newLabel = gpio["label"].as<String>();
+        if (newLabel != gpioConfigs[foundIdx].label) {
+          gpioConfigs[foundIdx].label = newLabel;
+          Serial.print("GPIO Pin "); Serial.print(pinNum); Serial.print(" Label aktualisiert zu: "); Serial.println(newLabel);
+          pinChanged = true;
+        }
+      }
+
+      if (pinChanged) {
+        Serial.print("GPIO Metadaten für Pin ");
+        Serial.print(pinNum);
+        Serial.println(" aktualisiert.");
+        settingsChanged = true;
+      }
     }
   }
 
@@ -375,8 +422,8 @@ void sendHeartbeat() {
     JsonObject pinObj = gpio_states_json.createNestedObject();
     pinObj["pinNumber"] = control_pins[i];
     pinObj["state"] = gpio_states[i];
-    // Metadaten (group / label)
-    pinObj["group"] = gpioConfigs[i].group;
+    // Metadaten (mode / label)
+    pinObj["mode"] = gpioConfigs[i].mode;
     pinObj["label"] = gpioConfigs[i].label;
   }
 
@@ -485,7 +532,7 @@ void reportGpioStates() {
     JsonObject pinObj = gpio_states_json.createNestedObject();
     pinObj["pinNumber"] = control_pins[i];
     pinObj["state"] = gpio_states[i];
-    pinObj["group"] = gpioConfigs[i].group;
+    pinObj["mode"] = gpioConfigs[i].mode;
     pinObj["label"] = gpioConfigs[i].label;
   }
 
@@ -548,7 +595,7 @@ void setup() {
     GPIOConfig temp[NUM_PINS];
     for (int i = 0; i < NUM_PINS; i++) {
       temp[i].pinNumber = control_pins[i];
-      temp[i].group = "none";
+      temp[i].mode = "none";
       temp[i].label = "";
     }
     // Übernehme geladene configs (falls vorhanden) basierend auf pinNumber
