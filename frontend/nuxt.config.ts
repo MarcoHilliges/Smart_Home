@@ -13,6 +13,12 @@ export default defineNuxtConfig({
     "nuxt-toast",
   ],
 
+  vite: {
+    optimizeDeps: {
+      exclude: ["izitoast"],
+    },
+  },
+
   i18n: {
     vueI18n: "./i18n.config.ts",
     defaultLocale: "de",
