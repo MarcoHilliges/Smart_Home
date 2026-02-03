@@ -2,6 +2,7 @@
 import type {
   DeviceStatus,
   GPIO,
+  GPIOMode,
   GPIOPin,
   GPIOPinState,
 } from "~/models/device";
@@ -20,6 +21,8 @@ const props = defineProps<{
 
 const toast = useToast();
 const { t } = useI18n();
+
+const { gpioModesActor, gpioModesSensor } = useDeviceStore();
 
 const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>(props.gpios);
@@ -46,9 +49,7 @@ watch(
         title: props.deviceName,
         message: t("device.setGpio.successText", {
           pinName: "PIN " + isLoadingGpioStates.value,
-          state: gpio?.state
-            ? t("common.activated")
-            : t("common.deactivated"),
+          state: gpio?.state ? t("common.activated") : t("common.deactivated"),
         }),
       });
     }
@@ -80,6 +81,36 @@ onBeforeUnmount(() => {
         class="flex items-center justify-between gap-12 py-8 border-b last:border-0 px-16"
       >
         <span class="whitespace-nowrap">Pin {{ gpio.pinNumber }}</span>
+
+        <div>
+          <input :value="gpio.label" type="text" />
+        </div>
+
+        <div>
+          <label :for="`gpio-mode-select-${gpio.pinNumber}`">Choose a pet:</label>
+
+          <select name="modes" :id="`gpio-mode-select-${gpio.pinNumber}`">
+            <option value="none">--Please choose an option--</option>
+            <optgroup label="Actor">
+              <option
+                v-for="mode in gpioModesActor"
+                :key="mode.value"
+                :value="mode.value"
+              >
+                {{ mode.label }}
+              </option>
+            </optgroup>
+            <optgroup label="Sensor">
+              <option
+                v-for="mode in gpioModesSensor"
+                :key="mode.value"
+                :value="mode.value"
+              >
+                {{ mode.label }}
+              </option>
+            </optgroup>
+          </select>
+        </div>
         <div class="flex items-center justify-between text-10">
           <button
             class="flex items-center justify-center w-24 h-20 rounded-l-md hover:text-success-active"

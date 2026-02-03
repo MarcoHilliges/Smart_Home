@@ -1,4 +1,4 @@
-import type { Device, GPIO } from "~/models/device";
+import type { Device, GPIO, GPIOModeActor, GPIOModeSensor } from "~/models/device";
 import {
   MessageTopic,
   type GPIOStateMessage,
@@ -9,6 +9,28 @@ import {
 const devices = ref<Device[]>([]);
 let isInitialized = false;
 const localStorageKey = "Device_Data";
+
+const gpioModesActor: { label: string, value: GPIOModeActor}[] = [
+  { label: "device.actor.lamp", value: "lamp" },
+  { label: "device.actor.pump", value: "pump" },
+  { label: "device.actor.fan", value: "fan" },
+  { label: "device.actor.relay", value: "relay" },
+  { label: "device.actor.buzzer", value: "buzzer" },
+  { label: "device.actor.led strip", value: "led_strip" },
+  { label: "device.actor.valve", value: "valve" },
+  { label: "device.actor.heater", value: "heater" },
+]
+
+const gpioModesSensor: { label: string, value: GPIOModeSensor}[] = [
+  { label: "device.sensor.temperature", value: "temperature" },
+  { label: "device.sensor.humidity", value: "humidity" },
+  { label: "device.sensor.light", value: "light" },
+  { label: "device.sensor.soil moisture", value: "soil_moisture" },
+  { label: "device.sensor.water level", value: "water_level" },
+  { label: "device.sensor.motion", value: "motion" },
+  { label: "device.sensor.door contact", value: "door_contact" },
+  { label: "device.sensor.touch", value: "touch" },
+]
 
 export const useDeviceStore = () => {
   const initializeStore = (initialData: Device[] = []) => {
@@ -54,7 +76,7 @@ export const useDeviceStore = () => {
         device.gpios.push({
           pinNumber: gpioState.pinNumber,
           state: gpioState.state,
-          group: "none",
+          mode: "none",
           label: "",
         });
       }
@@ -129,5 +151,7 @@ export const useDeviceStore = () => {
     addGpioStateMessage,
     saveDataIntoLocalStorage,
     loadDataFromLocalStorage,
+    gpioModesActor,
+    gpioModesSensor,
   };
 };

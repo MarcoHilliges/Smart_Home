@@ -10,7 +10,7 @@ import type {
   ContentTab,
   Device,
   ExtendedGPIO,
-  GPIOGroupId,
+  GPIOMode,
   GPIOPin,
   GPIOPinState,
   SetGPIO,
@@ -213,7 +213,7 @@ function loadDataFromStorage() {
 }
 
 interface GPIOGroup {
-  groupId: GPIOGroupId;
+  mode: GPIOMode;
   gpios: ExtendedGPIO[];
 }
 
@@ -228,10 +228,10 @@ const gpioGroups = computed(() => {
   );
   const groups: GPIOGroup[] = [];
   gpios.forEach((gpio) => {
-    if (!gpio.group) gpio.group = "none";
-    let group = groups.find((g) => g.groupId === gpio.group);
+    if (!gpio.mode) gpio.mode = "none";
+    let group = groups.find((g) => g.mode === gpio.mode);
     if (!group) {
-      group = { groupId: gpio.group, gpios: [] };
+      group = { mode: gpio.mode, gpios: [] };
       groups.push(group);
     }
     group.gpios.push(gpio);
