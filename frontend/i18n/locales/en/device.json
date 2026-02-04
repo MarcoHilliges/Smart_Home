@@ -1,12 +1,35 @@
 {
+  "actor": {
+    "actor": "Actuator",
+    "buzzer": "Buzzer",
+    "fan": "Fan",
+    "heater": "Heater",
+    "led_strip": "LED Strip",
+    "light": "Light",
+    "pump": "Pump",
+    "relay": "Relay",
+    "valve": "Valve"
+  },
   "deviceIsOffline": "Device is offline",
+  "gpioMode": "GPIO Mode",
+  "sensor": {
+    "door_contact": "Door Contact",
+    "humidity": "Humidity",
+    "light_sensor": "Light Sensor",
+    "motion": "Motion",
+    "sensor": "Sensor",
+    "soil_moisture": "Soil Moisture",
+    "temperature": "Temperature",
+    "touch": "Touch",
+    "water_level": "Water Level"
+  },
   "setGpio": {
     "successText": "{pinName} {state}"
   },
   "settings": {
     "deviceName": "Device Name",
     "deviceNameDescription": "The name of the device as it appears on the network.",
-    "loading": "loading settings...",
+    "loading": "Loading settings...",
     "wifiScanInterval": "WiFi Scan Interval",
     "wifiScanIntervalDescription": "Interval in seconds for WiFi status scans."
   },

@@ -1,5 +1,29 @@
 {
+  "actor": {
+    "actor": "Aktuator",
+    "buzzer": "Summer",
+    "fan": "Lüfter",
+    "heater": "Heizung",
+    "led_strip": "LED Streifen",
+    "light": "Licht",
+    "pump": "Pumpe",
+    "relay": "Relais",
+    "valve": "Ventil"
+  },
+  "chooseGpioMode": "Wähle einen GPIO Modus",
   "deviceIsOffline": "Gerät ist offline",
+  "gpioMode": "GPIO Modus",
+  "sensor": {
+    "door_contact": "Türkontakt",
+    "humidity": "Luftfeuchtigkeit",
+    "light_sensor": "Lichtsensor",
+    "motion": "Bewegung",
+    "sensor": "Sensor",
+    "soil_moisture": "Bodenfeuchtigkeit",
+    "temperature": "Temperatur",
+    "touch": "Berührung",
+    "water_level": "Wasserstand"
+  },
   "setGpio": {
     "successText": "{pinName} {state}"
   },

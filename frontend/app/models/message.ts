@@ -46,6 +46,7 @@ export interface GPIOStateMessage {
 export interface SettingsMessage {
   deviceName: string;
   wifiScanInterval: number;
+  gpioConfigs: {pinNumber: GPIOPin; mode: string; label: string}[];
 }
 
 export type DeviceMessage =

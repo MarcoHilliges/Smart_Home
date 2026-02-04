@@ -8,21 +8,48 @@ export enum GPIOPinState {
   LOW = 0,
   HIGH = 1,
 }
+export type GPIOModeActor =
+  | "light"
+  | "pump"
+  | "fan"
+  | "relay"
+  | "buzzer"
+  | "led_strip"
+  | "valve"
+  | "heater";
+export type GPIOModeSensor =
+  | "temperature"
+  | "humidity"
+  | "light_sensor"
+  | "soil_moisture"
+  | "water_level"
+  | "motion"
+  | "door_contact"
+  | "touch";
 
-export type GPIOGroupId = "lamp" | "pump" | "none";
+export type GPIOMode = GPIOModeActor | GPIOModeSensor | 'none';
 
-export interface GPIO {
+export interface GPIOActor {
   pinNumber: GPIOPin;
-  group?: GPIOGroupId;
+  mode?: GPIOModeActor | "none";
   label?: string;
   state: GPIOPinState;
 }
 
-export interface ExtendedGPIO extends GPIO {
+export interface GPIOSensor {
+  pinNumber: GPIOPin;
+  mode?: GPIOModeSensor | "none";
+  label?: string;
+  state: number;
+}
+
+export type GPIO = GPIOActor | GPIOSensor;
+
+export type ExtendedGPIO = GPIO & {
   deviceId: string;
   deviceName: string;
   deviceStatus: DeviceStatus;
-}
+};
 
 export type SetGPIO = Pick<GPIO, "pinNumber" | "state">;
 
@@ -33,6 +60,7 @@ export interface Device {
   gpios: GPIO[];
   deviceStatus: DeviceStatus;
   messages: DeviceMessage[];
+  settings: DeviceSettings | null;
 }
 
 export interface WLANNetwork {
@@ -42,6 +70,10 @@ export interface WLANNetwork {
 }
 
 // Settings
+export interface DeviceSettings {
+  wifiScanInterval: number;
+}
+
 export interface StringSettingsItem {
   key: keyof SettingsMessage;
   label: string;

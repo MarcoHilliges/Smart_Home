@@ -3,6 +3,7 @@ import {
   GPIOSubTopic,
   MessageTopic,
   WifiSubTopic,
+  type SettingsMessage,
   type StatusMessage,
   type WifiScanMessage,
 } from "~/models/message";
@@ -10,7 +11,8 @@ import type {
   ContentTab,
   Device,
   ExtendedGPIO,
-  GPIOGroupId,
+  GPIO,
+  GPIOMode,
   GPIOPin,
   GPIOPinState,
   SetGPIO,
@@ -124,6 +126,7 @@ onMounted(() => {
         deviceStatus: "offline",
         gpios: [],
         messages: [],
+        settings: null,
       };
       addDevice(newDevice);
       deviceEntry = devices.value.find(({ id }) => id === deviceId);
@@ -156,9 +159,30 @@ onMounted(() => {
 
       case MessageTopic.GPIO:
         if (subTopicType === GPIOSubTopic.STATE) {
+          const gpioStates = JSON.parse(message.toString())
+            .gpioStates as GPIO[];
+
+          gpioStates.forEach((gpioStateNew) => {
+            const existingGpio = deviceEntry?.gpios.find(
+              (g) => g.pinNumber === gpioStateNew.pinNumber,
+            );
+            if (existingGpio) {
+              for (const [key, value] of Object.entries(gpioStateNew)) {
+                const keyTyped = key as keyof GPIO;
+                if (existingGpio[keyTyped] !== value) {
+                  console.log(
+                    `Updating GPIO pin ${existingGpio.pinNumber} property ${key} from ${existingGpio[keyTyped]} to ${value}`,
+                  );
+                  (existingGpio as any)[key] = value;
+                }
+              }
+            } else {
+              deviceEntry?.gpios.push(gpioStateNew);
+            }
+          });
           const gpioStateMessage = {
             supTopic: GPIOSubTopic.STATE as const,
-            gpioStates: JSON.parse(message.toString()).gpioStates,
+            gpioStates: gpioStates,
             timestamp: Date.now(),
           };
 
@@ -168,6 +192,31 @@ onMounted(() => {
         break;
 
       case MessageTopic.SETTINGS:
+        const settingsMessage: SettingsMessage = JSON.parse(message.toString());
+
+        for (const [key, value] of Object.entries(settingsMessage)) {
+          switch (key) {
+            case "deviceName":
+              deviceEntry.name = String(value);
+              break;
+            case "wifiScanInterval":
+              if (!deviceEntry.settings) {
+                deviceEntry.settings = { wifiScanInterval: 0 };
+              }
+              deviceEntry.settings.wifiScanInterval = Number(value);
+              break;
+            case "gpioConfigs":
+              value.forEach((gpioConfig: GPIO) => {
+                const gpio = deviceEntry?.gpios.find(
+                  (g) => g.pinNumber === gpioConfig.pinNumber,
+                );
+                if (gpio) {
+                  gpio.mode = gpioConfig.mode;
+                  gpio.label = gpioConfig.label;
+                }
+              });
+          }
+        }
         break;
 
       default:
@@ -187,6 +236,12 @@ function setGpioPinState(deviceId: string, pin: GPIOPin, value: GPIOPinState) {
   const payload: SetGPIO[] = [{ pinNumber: pin, state: value }];
   const topic = `esp32/${deviceId}/gpio/set`;
   const message = JSON.stringify(payload);
+  $mqtt.publish(topic, message);
+}
+
+function setGpioConfigs(deviceId: string, gpioConfigs: Partial<GPIO>[]) {
+  const topic = `esp32/${deviceId}/settings/set`;
+  const message = JSON.stringify({ gpioConfigs });
   $mqtt.publish(topic, message);
 }
 
@@ -213,7 +268,7 @@ function loadDataFromStorage() {
 }
 
 interface GPIOGroup {
-  groupId: GPIOGroupId;
+  mode: GPIOMode;
   gpios: ExtendedGPIO[];
 }
 
@@ -228,10 +283,10 @@ const gpioGroups = computed(() => {
   );
   const groups: GPIOGroup[] = [];
   gpios.forEach((gpio) => {
-    if (!gpio.group) gpio.group = "none";
-    let group = groups.find((g) => g.groupId === gpio.group);
+    if (!gpio.mode) gpio.mode = "none";
+    let group = groups.find((g) => g.mode === gpio.mode);
     if (!group) {
-      group = { groupId: gpio.group, gpios: [] };
+      group = { mode: gpio.mode, gpios: [] };
       groups.push(group);
     }
     group.gpios.push(gpio);
@@ -315,12 +370,18 @@ function changeTab(tab: ContentTab) {
                   ({ deviceId, pin, value }) =>
                     setGpioPinState(deviceId, pin, value)
                 "
+                @set-gpio-configs="
+                  ({ deviceId, gpioConfigs }) =>
+                    setGpioConfigs(deviceId, gpioConfigs)
+                "
               />
 
               <DevicesSectionsSettings
                 v-else-if="activeTab === 'settings'"
                 :device-id="currentDevice.id"
                 :device-status="currentDevice.deviceStatus"
+                :device-name="currentDevice.name"
+                :settings="currentDevice.settings"
               />
             </template>
           </div>
