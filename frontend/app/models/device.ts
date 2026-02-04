@@ -20,7 +20,7 @@ export type GPIOModeActor =
 export type GPIOModeSensor =
   | "temperature"
   | "humidity"
-  | "light"
+  | "light_sensor"
   | "soil_moisture"
   | "water_level"
   | "motion"

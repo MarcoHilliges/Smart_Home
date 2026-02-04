@@ -159,9 +159,30 @@ onMounted(() => {
 
       case MessageTopic.GPIO:
         if (subTopicType === GPIOSubTopic.STATE) {
+          const gpioStates = JSON.parse(message.toString())
+            .gpioStates as GPIO[];
+
+          gpioStates.forEach((gpioStateNew) => {
+            const existingGpio = deviceEntry?.gpios.find(
+              (g) => g.pinNumber === gpioStateNew.pinNumber,
+            );
+            if (existingGpio) {
+              for (const [key, value] of Object.entries(gpioStateNew)) {
+                const keyTyped = key as keyof GPIO;
+                if (existingGpio[keyTyped] !== value) {
+                  console.log(
+                    `Updating GPIO pin ${existingGpio.pinNumber} property ${key} from ${existingGpio[keyTyped]} to ${value}`,
+                  );
+                  (existingGpio as any)[key] = value;
+                }
+              }
+            } else {
+              deviceEntry?.gpios.push(gpioStateNew);
+            }
+          });
           const gpioStateMessage = {
             supTopic: GPIOSubTopic.STATE as const,
-            gpioStates: JSON.parse(message.toString()).gpioStates,
+            gpioStates: gpioStates,
             timestamp: Date.now(),
           };
 

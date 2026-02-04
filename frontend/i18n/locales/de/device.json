@@ -16,7 +16,7 @@
   "sensor": {
     "door_contact": "Türkontakt",
     "humidity": "Luftfeuchtigkeit",
-    "light": "Licht",
+    "light_sensor": "Lichtsensor",
     "motion": "Bewegung",
     "sensor": "Sensor",
     "soil_moisture": "Bodenfeuchtigkeit",

@@ -25,7 +25,7 @@ const { t } = useI18n();
 
 const { gpioModesActor, gpioModesSensor } = useDeviceStore();
 
-const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
+const isUpdatingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>([]);
 
 const valuesAreValid = computed(() => {
@@ -33,15 +33,14 @@ const valuesAreValid = computed(() => {
 });
 const valuesAreChanged = computed(() => {
   return (
-    !isLoadingGpioStates.value &&
+    !isUpdatingGpioStates.value &&
     JSON.stringify(props.gpios) !== JSON.stringify(gpioPinStates.value)
   );
 });
 
 function saveChanges() {
-  if (isLoadingGpioStates.value) return;
-  isLoadingGpioStates.value = -1;
-  console.log(getChanges());
+  if (isUpdatingGpioStates.value) return;
+  isUpdatingGpioStates.value = -1;
 
   emit("setGpioConfigs", {
     deviceId: props.deviceId,
@@ -54,12 +53,12 @@ function cloneGpioStates() {
 }
 
 function stopGettingGpioStates() {
-  isLoadingGpioStates.value = null;
+  isUpdatingGpioStates.value = null;
 }
 
 function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
-  if (isLoadingGpioStates.value) return;
-  isLoadingGpioStates.value = pin;
+  if (isUpdatingGpioStates.value) return;
+  isUpdatingGpioStates.value = pin;
 
   emit("setGpioPin", { deviceId: props.deviceId, pin, value });
 }
@@ -96,24 +95,25 @@ function getChanges() {
 }
 
 watch(
-  () => gpioPinStates.value,
+  () => props.gpios,
   (newVal) => {
-    if (isLoadingGpioStates.value && isLoadingGpioStates.value !== -1) {
+    if (isUpdatingGpioStates.value && isUpdatingGpioStates.value !== -1) {
       const gpio = newVal.find(
-        (g) => g.pinNumber === isLoadingGpioStates.value,
+        (g) => g.pinNumber === isUpdatingGpioStates.value,
       );
       toast.success({
         title: props.deviceName,
         message: t("device.setGpio.successText", {
-          pinName: "PIN " + isLoadingGpioStates.value,
+          pinName: "PIN " + isUpdatingGpioStates.value,
           state: gpio?.state ? t("common.activated") : t("common.deactivated"),
         }),
       });
     }
 
+    cloneGpioStates();
     stopGettingGpioStates();
   },
-  { immediate: true, deep: true },
+  { deep: true },
 );
 
 // Lifecycle
@@ -184,14 +184,14 @@ onBeforeUnmount(() => {
               'bg-success': gpio.state === 1,
               'bg-gray-300': gpio.state === 0,
               'pointer-events-none':
-                isLoadingGpioStates ||
+                isUpdatingGpioStates ||
                 gpio.state === null ||
                 gpio.state === undefined ||
                 gpio.state === 1 ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
               'text-success-active':
-                isLoadingGpioStates === Number(gpio.pinNumber) &&
+                isUpdatingGpioStates === Number(gpio.pinNumber) &&
                 gpio.state === 0,
             }"
             @click="setGpioPinState(Number(gpio.pinNumber), 1)"
@@ -204,14 +204,14 @@ onBeforeUnmount(() => {
               'bg-error': gpio.state === 0,
               'bg-gray-300': gpio.state === 1,
               'pointer-events-none':
-                isLoadingGpioStates ||
+                isUpdatingGpioStates ||
                 gpio.state === null ||
                 gpio.state === undefined ||
                 gpio.state === 0 ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
               'text-error':
-                isLoadingGpioStates === Number(gpio.pinNumber) &&
+                isUpdatingGpioStates === Number(gpio.pinNumber) &&
                 gpio.state === 1,
             }"
             @click="setGpioPinState(Number(gpio.pinNumber), 0)"

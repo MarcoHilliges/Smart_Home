@@ -24,7 +24,7 @@ const gpioModesActor: { i18nKey: string, value: GPIOModeActor}[] = [
 const gpioModesSensor: { i18nKey: string, value: GPIOModeSensor}[] = [
   { i18nKey: "device.sensor.temperature", value: "temperature" },
   { i18nKey: "device.sensor.humidity", value: "humidity" },
-  { i18nKey: "device.sensor.light", value: "light" },
+  { i18nKey: "device.sensor.light_sensor", value: "light_sensor" },
   { i18nKey: "device.sensor.soil_moisture", value: "soil_moisture" },
   { i18nKey: "device.sensor.water_level", value: "water_level" },
   { i18nKey: "device.sensor.motion", value: "motion" },
