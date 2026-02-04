@@ -60,6 +60,7 @@ export interface Device {
   gpios: GPIO[];
   deviceStatus: DeviceStatus;
   messages: DeviceMessage[];
+  settings: DeviceSettings | null;
 }
 
 export interface WLANNetwork {
@@ -69,6 +70,10 @@ export interface WLANNetwork {
 }
 
 // Settings
+export interface DeviceSettings {
+  wifiScanInterval: number;
+}
+
 export interface StringSettingsItem {
   key: keyof SettingsMessage;
   label: string;

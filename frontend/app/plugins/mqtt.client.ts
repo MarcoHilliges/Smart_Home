@@ -34,6 +34,7 @@ export default defineNuxtPlugin(nuxtApp => {
     client.subscribe("esp32/+/wifi/scan");
     client.subscribe("esp32/+/gpio/state");
     client.subscribe("esp32/+/settings");
+    client.subscribe("esp32/+/settings/set");
     mqttConnectionState.value = 'connected';
   });
 

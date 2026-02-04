@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { MessageTopic, type SettingsMessage } from "~/models/message";
 import { Info } from "lucide-vue-next";
-import type { DeviceStatus, SettingsItem } from "~/models/device";
+import type {
+  DeviceSettings,
+  DeviceStatus,
+  SettingsItem,
+} from "~/models/device";
 
 const { $mqtt } = useNuxtApp();
 const { t } = useI18n();
@@ -10,9 +14,9 @@ const props = defineProps<{
   deviceStatus: DeviceStatus;
   deviceId: string;
   deviceName?: string;
+  settings: DeviceSettings | null;
 }>();
 
-const { updateDeviceName } = useDeviceStore();
 const toast = useToast();
 
 const settingsItems = ref<SettingsItem[]>([
@@ -64,52 +68,23 @@ const isLoadingSettings = ref(false);
 const isSavingSettings = ref(false);
 
 onMounted(() => {
-  $mqtt.on("message", (topic, message) => {
-    const deviceId = topic.split("/")[1]; // Extrahiere die Geräte-ID aus dem Topic
-    const topicType = topic.split("/")[2]; // Extrahiere den Nachrichtentyp aus dem Topic
+  setValuesToDefaults();
+});
 
-    if (topicType !== MessageTopic.SETTINGS) return;
-
-    if (deviceId !== props.deviceId) return;
-    const messageData: SettingsMessage = JSON.parse(message.toString());
-
-    let oldValues = [];
-    if (isSavingSettings.value)
-      oldValues = JSON.parse(JSON.stringify(settingsItems.value));
-
-    settingsItems.value.forEach((item) => {
-      const dataValue = messageData[item.key as keyof SettingsMessage];
-      if (dataValue !== undefined && typeof dataValue === item.valueType) {
-        switch (item.key) {
-          case "deviceName":
-            item.value = String(dataValue);
-            updateDeviceName(props.deviceId, String(dataValue));
-            break;
-
-          default:
-            item.value = dataValue;
-        }
-      }
-    });
-
-    if (
-      isSavingSettings.value &&
-      JSON.stringify(oldValues) === JSON.stringify(settingsItems.value)
-    ) {
-      isSavingSettings.value = false;
-      toast.success({
-        title: t("device.tabs.settings"),
-        message: t("common.saveSuccessfully"),
-      });
+function setValuesToDefaults() {
+  settingsItems.value.forEach((item) => {
+    switch (item.key) {
+      case "deviceName":
+        item.value = props.deviceName || "";
+        break;
+      case "wifiScanInterval":
+        item.value = props.settings?.wifiScanInterval || 60000;
+        break;
     }
-
-    defaultValues.value = JSON.parse(JSON.stringify(settingsItems.value));
-
-    isLoadingSettings.value = false;
   });
 
-  getSettings();
-});
+  defaultValues.value = JSON.parse(JSON.stringify(settingsItems.value));
+}
 
 function getSettings() {
   isLoadingSettings.value = true;
@@ -140,6 +115,22 @@ function saveChanges() {
   isSavingSettings.value = true;
   $mqtt.publish(topic, JSON.stringify(message));
 }
+
+watch(
+  () => props,
+  () => {
+    setValuesToDefaults();
+    isLoadingSettings.value = false;
+    if (isSavingSettings.value) {
+      toast.success({
+        title: t("device.tabs.settings"),
+        message: t("common.saveSuccessfully"),
+      });
+      isSavingSettings.value = false;
+    }
+  },
+  { deep: true },
+);
 </script>
 
 <template>
@@ -191,6 +182,7 @@ function saveChanges() {
         />
       </li>
     </ul>
+
     <div class="mt-auto flex justify-end pb-6 mx-12">
       <button
         class="px-12 py-6 border rounded"

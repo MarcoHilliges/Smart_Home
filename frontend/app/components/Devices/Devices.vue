@@ -3,6 +3,7 @@ import {
   GPIOSubTopic,
   MessageTopic,
   WifiSubTopic,
+  type SettingsMessage,
   type StatusMessage,
   type WifiScanMessage,
 } from "~/models/message";
@@ -10,6 +11,7 @@ import type {
   ContentTab,
   Device,
   ExtendedGPIO,
+  GPIO,
   GPIOMode,
   GPIOPin,
   GPIOPinState,
@@ -124,6 +126,7 @@ onMounted(() => {
         deviceStatus: "offline",
         gpios: [],
         messages: [],
+        settings: null,
       };
       addDevice(newDevice);
       deviceEntry = devices.value.find(({ id }) => id === deviceId);
@@ -168,7 +171,31 @@ onMounted(() => {
         break;
 
       case MessageTopic.SETTINGS:
-        s
+        const settingsMessage: SettingsMessage = JSON.parse(message.toString());
+
+        for (const [key, value] of Object.entries(settingsMessage)) {
+          switch (key) {
+            case "deviceName":
+              deviceEntry.name = String(value);
+              break;
+            case "wifiScanInterval":
+              if (!deviceEntry.settings) {
+                deviceEntry.settings = { wifiScanInterval: 0 };
+              }
+              deviceEntry.settings.wifiScanInterval = Number(value);
+              break;
+            case "gpioConfigs":
+              value.forEach((gpioConfig: GPIO) => {
+                const gpio = deviceEntry?.gpios.find(
+                  (g) => g.pinNumber === gpioConfig.pinNumber,
+                );
+                if (gpio) {
+                  gpio.mode = gpioConfig.mode;
+                  gpio.label = gpioConfig.label;
+                }
+              });
+          }
+        }
         break;
 
       default:
@@ -188,6 +215,12 @@ function setGpioPinState(deviceId: string, pin: GPIOPin, value: GPIOPinState) {
   const payload: SetGPIO[] = [{ pinNumber: pin, state: value }];
   const topic = `esp32/${deviceId}/gpio/set`;
   const message = JSON.stringify(payload);
+  $mqtt.publish(topic, message);
+}
+
+function setGpioConfigs(deviceId: string, gpioConfigs: Partial<GPIO>[]) {
+  const topic = `esp32/${deviceId}/settings/set`;
+  const message = JSON.stringify({ gpioConfigs });
   $mqtt.publish(topic, message);
 }
 
@@ -316,12 +349,18 @@ function changeTab(tab: ContentTab) {
                   ({ deviceId, pin, value }) =>
                     setGpioPinState(deviceId, pin, value)
                 "
+                @set-gpio-configs="
+                  ({ deviceId, gpioConfigs }) =>
+                    setGpioConfigs(deviceId, gpioConfigs)
+                "
               />
 
               <DevicesSectionsSettings
                 v-else-if="activeTab === 'settings'"
                 :device-id="currentDevice.id"
                 :device-status="currentDevice.deviceStatus"
+                :device-name="currentDevice.name"
+                :settings="currentDevice.settings"
               />
             </template>
           </div>

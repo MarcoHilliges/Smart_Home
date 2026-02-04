@@ -10,6 +10,7 @@ import type {
 const emit = defineEmits<{
   setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
   getGpioStates: [];
+  setGpioConfigs: [{ deviceId: string; gpioConfigs: Partial<GPIO>[] }];
 }>();
 
 const props = defineProps<{
@@ -25,7 +26,32 @@ const { t } = useI18n();
 const { gpioModesActor, gpioModesSensor } = useDeviceStore();
 
 const isLoadingGpioStates = ref<null | GPIOPin | -1>(null);
-const gpioPinStates = ref<GPIO[]>(props.gpios);
+const gpioPinStates = ref<GPIO[]>([]);
+
+const valuesAreValid = computed(() => {
+  return !gpioPinStates.value.find((gpio) => gpio.state === null);
+});
+const valuesAreChanged = computed(() => {
+  return (
+    !isLoadingGpioStates.value &&
+    JSON.stringify(props.gpios) !== JSON.stringify(gpioPinStates.value)
+  );
+});
+
+function saveChanges() {
+  if (isLoadingGpioStates.value) return;
+  isLoadingGpioStates.value = -1;
+  console.log(getChanges());
+
+  emit("setGpioConfigs", {
+    deviceId: props.deviceId,
+    gpioConfigs: getChanges(),
+  });
+}
+
+function cloneGpioStates() {
+  gpioPinStates.value = JSON.parse(JSON.stringify(props.gpios));
+}
 
 function stopGettingGpioStates() {
   isLoadingGpioStates.value = null;
@@ -36,6 +62,37 @@ function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
   isLoadingGpioStates.value = pin;
 
   emit("setGpioPin", { deviceId: props.deviceId, pin, value });
+}
+
+function getChanges() {
+  const originalValues = props.gpios;
+  const currentValues = gpioPinStates.value;
+
+  const changedGpios: Partial<GPIO>[] = [];
+  currentValues.forEach((gpio) => {
+    const originalGpio = originalValues.find(
+      (g) => g.pinNumber === gpio.pinNumber,
+    );
+    if (originalGpio) {
+      if (
+        originalGpio.label !== gpio.label ||
+        originalGpio.mode !== gpio.mode
+      ) {
+        const change: Partial<GPIO> = {
+          pinNumber: gpio.pinNumber,
+        };
+        if (gpio.label && originalGpio.label !== gpio.label) {
+          change.label = gpio.label;
+        }
+        if (gpio.mode && originalGpio.mode !== gpio.mode) {
+          change.mode = gpio.mode;
+        }
+        changedGpios.push(change);
+      }
+    }
+  });
+
+  return changedGpios;
 }
 
 watch(
@@ -59,14 +116,11 @@ watch(
   { immediate: true, deep: true },
 );
 
-// Helpers
-function formatTimestamp(timestamp: number | undefined | null) {
-  if (!timestamp) return "-";
-  const date = new Date(timestamp);
-  return date.toLocaleString();
-}
-
 // Lifecycle
+onMounted(() => {
+  cloneGpioStates();
+});
+
 onBeforeUnmount(() => {
   stopGettingGpioStates();
 });
@@ -87,7 +141,7 @@ onBeforeUnmount(() => {
         <div class="w-[200px]">
           <input
             :id="`gpio-label-input-${gpio.pinNumber}`"
-            :value="gpio.label"
+            v-model="gpio.label"
             type="text"
           />
         </div>
@@ -97,7 +151,11 @@ onBeforeUnmount(() => {
             {{ t("device.gpioMode") }}
           </label>
 
-          <select name="modes" :id="`gpio-mode-select-${gpio.pinNumber}`">
+          <select
+            v-model="gpio.mode"
+            name="modes"
+            :id="`gpio-mode-select-${gpio.pinNumber}`"
+          >
             <option value="none">{{ t("common.deactivated") }}</option>
             <optgroup :label="t('device.actor.actor')">
               <option
@@ -163,5 +221,18 @@ onBeforeUnmount(() => {
         </div>
       </li>
     </ul>
+    <div class="mt-auto flex justify-end pb-6 mx-12">
+      <button
+        class="px-12 py-6 border rounded"
+        :class="
+          valuesAreChanged && valuesAreValid
+            ? 'border-success hover:border-success-hover active:border-success-active'
+            : 'border-border pointer-events-none'
+        "
+        @click="saveChanges()"
+      >
+        {{ t("common.save") }}
+      </button>
+    </div>
   </div>
 </template>
