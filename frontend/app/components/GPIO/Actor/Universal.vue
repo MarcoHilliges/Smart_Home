@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { ExtendedGPIO, GPIOPin, GPIOPinState } from "~/models/device";
-import { Power } from "lucide-vue-next";
+import {
+  Power,
+  PowerOff,
+} from "lucide-vue-next";
 
 const emits = defineEmits<{
   setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
@@ -30,6 +33,20 @@ const dimensions = computed(() => {
   };
 });
 
+const { gpioModesActor } = useDeviceStore();
+
+const gpioModeIcon = computed(() => {
+  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.mode);
+  return props.gpio.state
+    ? mode?.symbolOn || Power
+    : mode?.symbolOff || PowerOff;
+});
+
+const gpioModeIconColor = computed(() => {
+  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.mode);
+  return props.gpio.state && mode?.colorOn ? mode.colorOn : "";
+});
+
 const gpioState = computed(() => {
   return !!props.gpio.state;
 });
@@ -50,15 +67,15 @@ watch(
   () => props.gpio.state,
   () => {
     isChangingState.value = false;
-          toast.success({
-        title: props.gpio.deviceName,
-        message: t("device.setGpio.successText", {
-          pinName: "PIN " + props.gpio.pinNumber,
-          state: props.gpio.state
-            ? t("common.activated")
-            : t("common.deactivated"),
-        }),
-      });
+    toast.success({
+      title: props.gpio.deviceName,
+      message: t("device.setGpio.successText", {
+        pinName: "PIN " + props.gpio.pinNumber,
+        state: props.gpio.state
+          ? t("common.activated")
+          : t("common.deactivated"),
+      }),
+    });
   },
 );
 </script>
@@ -93,7 +110,7 @@ watch(
           </span>
         </template>
 
-        <Power :size="30" />
+        <component :is="gpioModeIcon" :size="30" :class="gpioModeIconColor" />
 
         <template #bottom>
           <span class="text-8 text-primary">

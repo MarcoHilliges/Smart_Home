@@ -1,4 +1,24 @@
-import type { Device, GPIO, GPIOModeActor, GPIOModeSensor } from "~/models/device";
+import {
+  BellOff,
+  BellRing,
+  Droplet,
+  DropletOff,
+  Fan,
+  Flame,
+  Lightbulb,
+  LightbulbOff,
+  Snowflake,
+  ToggleLeft,
+  ToggleRight,
+  type LucideProps,
+} from "lucide-vue-next";
+import type { FunctionalComponent } from "vue";
+import type {
+  Device,
+  GPIO,
+  GPIOModeActor,
+  GPIOModeSensor,
+} from "~/models/device";
 import {
   MessageTopic,
   type GPIOStateMessage,
@@ -10,18 +30,72 @@ const devices = ref<Device[]>([]);
 let isInitialized = false;
 const localStorageKey = "Device_Data";
 
-const gpioModesActor: { i18nKey: string, value: GPIOModeActor}[] = [
-  { i18nKey: "device.actor.light", value: "light" },
-  { i18nKey: "device.actor.pump", value: "pump" },
-  { i18nKey: "device.actor.fan", value: "fan" },
-  { i18nKey: "device.actor.relay", value: "relay" },
-  { i18nKey: "device.actor.buzzer", value: "buzzer" },
-  { i18nKey: "device.actor.led_strip", value: "led_strip" },
-  { i18nKey: "device.actor.valve", value: "valve" },
-  { i18nKey: "device.actor.heater", value: "heater" },
-]
+const gpioModesActor: {
+  i18nKey: string;
+  value: GPIOModeActor;
+  symbolOn?: FunctionalComponent<LucideProps>;
+  symbolOff?: FunctionalComponent<LucideProps>;
+  colorOn?: string;
+}[] = [
+  {
+    i18nKey: "device.actor.light",
+    value: "light",
+    symbolOn: Lightbulb,
+    symbolOff: LightbulbOff,
+    colorOn: "text-yellow-400",
+  },
+  {
+    i18nKey: "device.actor.pump",
+    value: "pump",
+    symbolOn: Droplet,
+    symbolOff: DropletOff,
+    colorOn: "text-blue-400",
+  },
+  {
+    i18nKey: "device.actor.fan",
+    value: "fan",
+    symbolOn: Fan,
+    symbolOff: Fan,
+    colorOn: "text-green-400",
+  },
+  {
+    i18nKey: "device.actor.relay",
+    value: "relay",
+    symbolOn: ToggleLeft,
+    symbolOff: ToggleRight,
+    colorOn: "text-green-400",
+  },
+  {
+    i18nKey: "device.actor.buzzer",
+    value: "buzzer",
+    symbolOn: BellRing,
+    symbolOff: BellOff,
+    colorOn: "text-yellow-400",
+  },
+  {
+    i18nKey: "device.actor.led_strip",
+    value: "led_strip",
+    symbolOn: Lightbulb,
+    symbolOff: LightbulbOff,
+    colorOn: "text-purple-400",
+  },
+  {
+    i18nKey: "device.actor.valve",
+    value: "valve",
+    symbolOn: Droplet,
+    symbolOff: DropletOff,
+    colorOn: "text-blue-400",
+  },
+  {
+    i18nKey: "device.actor.heater",
+    value: "heater",
+    symbolOn: Flame,
+    symbolOff: Snowflake,
+    colorOn: "text-red-400",
+  },
+];
 
-const gpioModesSensor: { i18nKey: string, value: GPIOModeSensor}[] = [
+const gpioModesSensor: { i18nKey: string; value: GPIOModeSensor }[] = [
   { i18nKey: "device.sensor.temperature", value: "temperature" },
   { i18nKey: "device.sensor.humidity", value: "humidity" },
   { i18nKey: "device.sensor.light_sensor", value: "light_sensor" },
@@ -30,7 +104,7 @@ const gpioModesSensor: { i18nKey: string, value: GPIOModeSensor}[] = [
   { i18nKey: "device.sensor.motion", value: "motion" },
   { i18nKey: "device.sensor.door_contact", value: "door_contact" },
   { i18nKey: "device.sensor.touch", value: "touch" },
-]
+];
 
 export const useDeviceStore = () => {
   const initializeStore = (initialData: Device[] = []) => {

@@ -170,9 +170,6 @@ onMounted(() => {
               for (const [key, value] of Object.entries(gpioStateNew)) {
                 const keyTyped = key as keyof GPIO;
                 if (existingGpio[keyTyped] !== value) {
-                  console.log(
-                    `Updating GPIO pin ${existingGpio.pinNumber} property ${key} from ${existingGpio[keyTyped]} to ${value}`,
-                  );
                   (existingGpio as any)[key] = value;
                 }
               }
