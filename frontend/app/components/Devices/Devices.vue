@@ -289,7 +289,7 @@ const gpioGroups = computed(() => {
     group.gpios.push(gpio);
   });
 
-  return groups;
+  return groups.filter((group) => group.mode !== "none");
 });
 
 function changeTab(tab: ContentTab) {
