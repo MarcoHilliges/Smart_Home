@@ -102,13 +102,19 @@ watch(
         (g) => g.pinNumber === isUpdatingGpioStates.value,
       );
       toast.success({
-        title: props.deviceName,
-        message: t("device.setGpio.successText", {
-          pinName: "PIN " + isUpdatingGpioStates.value,
+        title: t("device.setGpio.successText", {
+          pinName: gpio?.label || "PIN " + isUpdatingGpioStates.value,
           state: gpio?.state ? t("common.activated") : t("common.deactivated"),
         }),
+        message: props.deviceName,
       });
     }
+
+    if (isUpdatingGpioStates.value === -1)
+      toast.success({
+        title: props.deviceName,
+        message: t("common.saveSuccessfully"),
+      });
 
     cloneGpioStates();
     stopGettingGpioStates();

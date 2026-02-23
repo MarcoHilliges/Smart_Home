@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import type { ExtendedGPIO, GPIOPin, GPIOPinState } from "~/models/device";
-import {
-  Power,
-  PowerOff,
-} from "lucide-vue-next";
+import { Power, PowerOff } from "lucide-vue-next";
 
 const emits = defineEmits<{
   setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
@@ -68,13 +65,13 @@ watch(
   () => {
     isChangingState.value = false;
     toast.success({
-      title: props.gpio.deviceName,
-      message: t("device.setGpio.successText", {
-        pinName: "PIN " + props.gpio.pinNumber,
+      title: t("device.setGpio.successText", {
+        pinName: props.gpio.label || "PIN " + props.gpio.pinNumber,
         state: props.gpio.state
           ? t("common.activated")
           : t("common.deactivated"),
       }),
+      message: props.gpio.deviceName,
     });
   },
 );
