@@ -1,58 +1,62 @@
-#include "secrets.h"      // Enthält vertrauliche WLAN- und MQTT-Zugangsdaten. MUSS in .gitignore!
+#include "board_definitions/esp_32.cpp" // Enthält die Pin-Definitionen für das ESP32 DevKitC V4
+#include "board_definitions/esp_32.h"
 #include "littlefs_settings.h" // LittleFS-Verwaltung für Geräteeinstellungen
+#include "secrets.h"      // Enthält vertrauliche WLAN- und MQTT-Zugangsdaten. MUSS in .gitignore!
 #include <ArduinoJson.h>  // Bibliothek für effizientes JSON-Parsing und -Generierung
-#include <WiFi.h>         // Bibliothek für WLAN-Funktionalität
-#include <PubSubClient.h> // Bibliothek für MQTT-Kommunikation
 #include <Esp.h>          // Für ESP-spezifische Funktionen wie ESP.getFreeHeap()
+#include <PubSubClient.h> // Bibliothek für MQTT-Kommunikation
+#include <WiFi.h>         // Bibliothek für WLAN-Funktionalität
 
 // ----------------------------------------
 // WLAN-Einstellungen
 // Werden aus der secrets.h-Datei geladen, um sie vom Code zu trennen
 // ----------------------------------------
-const char* ssid = WIFI_SSID;       // WLAN-SSID
+const char* ssid = WIFI_SSID;         // WLAN-SSID
 const char* password = WIFI_PASSWORD; // WLAN-Passwort
 
 // ----------------------------------------
 // MQTT-Einstellungen
 // Werden ebenfalls aus der secrets.h-Datei geladen
 // ----------------------------------------
-const char* mqtt_broker = MQTT_BROKER_IP;   // IP-Adresse des MQTT-Brokers (dein Docker-Host)
-const int mqtt_port = MQTT_BROKER_PORT;     // MQTT-Port des Brokers (Standard 1883)
-const char* mqtt_user = MQTT_USERNAME;      // MQTT-Benutzername
-const char* mqtt_pass = MQTT_PASSWORD;      // MQTT-Passwort
+const char* mqtt_broker = MQTT_BROKER_IP; // IP-Adresse des MQTT-Brokers (dein Docker-Host)
+const int mqtt_port = MQTT_BROKER_PORT;   // MQTT-Port des Brokers (Standard 1883)
+const char* mqtt_user = MQTT_USERNAME;    // MQTT-Benutzername
+const char* mqtt_pass = MQTT_PASSWORD;    // MQTT-Passwort
 
 // Globale Variablen für die Geräte-ID und MQTT-Topics.
 // Diese werden dynamisch in setup() initialisiert, da deviceId von der MAC abhängt.
-String deviceId;                  // Eindeutige Geräte-ID basierend auf der MAC-Adresse
-String topic_status_get_all_sub;  // Topic zum Abonnieren von Anfragen für den Online-Status/Heartbeats aller Geräte
-String topic_status_pub;          // Topic zum Veröffentlichen des Online-Status/Heartbeats
-String topic_status_get_sub;      // Topic zum Abonnieren von Anfragen für den Status
-String topic_wifi_scan_pub;       // Topic zum Veröffentlichen von WiFi-Scan-Ergebnissen
-String topic_wifi_get_sub;        // Topic zum Abonnieren von Anfragen für WiFi-Scan
-String topic_gpio_state_pub;      // Topic zum Veröffentlichen des aktuellen GPIO-Status
-String topic_gpio_get_sub;        // Topic zum Abonnieren von Anfragen für den GPIO-Status
-String topic_gpio_set_sub;        // Topic zum Abonnieren von Befehlen zur GPIO-Steuerung
-String topic_settings_get_sub;    // Topic zum Abonnieren von Anfragen für die Einstellungen
-String topic_settings_pub;        // Topic zum Veröffentlichen der Einstellungen
-String topic_settings_set_sub;    // Topic zum Abonnieren von Befehlen zur Einstellung der Geräteeinstellungen
+String deviceId;                 // Eindeutige Geräte-ID basierend auf der MAC-Adresse
+String topic_status_get_all_sub; // Topic zum Abonnieren von Anfragen für den
+                                 // Online-Status/Heartbeats aller Geräte
+String topic_status_pub;         // Topic zum Veröffentlichen des Online-Status/Heartbeats
+String topic_status_get_sub;     // Topic zum Abonnieren von Anfragen für den Status
+String topic_wifi_scan_pub;      // Topic zum Veröffentlichen von WiFi-Scan-Ergebnissen
+String topic_wifi_get_sub;       // Topic zum Abonnieren von Anfragen für WiFi-Scan
+String topic_gpio_state_pub;     // Topic zum Veröffentlichen des aktuellen GPIO-Status
+String topic_gpio_get_sub;       // Topic zum Abonnieren von Anfragen für den GPIO-Status
+String topic_gpio_set_sub;       // Topic zum Abonnieren von Befehlen zur GPIO-Steuerung
+String topic_settings_get_sub;   // Topic zum Abonnieren von Anfragen für die Einstellungen
+String topic_settings_pub;       // Topic zum Veröffentlichen der Einstellungen
+String topic_settings_set_sub;   // Topic zum Abonnieren von Befehlen zur Einstellung der
+                                 // Geräteeinstellungen
 
 // Globale Variablen für den nicht-blockierenden Scan
 String currentDeviceName = BASE_DEVICE_NAME; // TODO: add this later | Gerätenamen anpassen
-bool wifiScanning = false;        // Flag, ob ein WiFi-Scan läuft
+bool wifiScanning = false;                   // Flag, ob ein WiFi-Scan läuft
 
 // ----------------------------------------
 // Timer für periodische Aufgaben
 // Verwendet millis() für nicht-blockierende Zeitintervalle
 // ----------------------------------------
-long lastHeartbeatTime = 0;       // Zeitpunkt des letzten Heartbeats
+long lastHeartbeatTime = 0;           // Zeitpunkt des letzten Heartbeats
 const long heartbeatInterval = 30000; // Intervall für Heartbeats (30 Sekunden)
 
-long lastWifiScanTime = 0;        // Zeitpunkt des letzten WiFi-Scans
-long wifiScanInterval = 60000;  // Intervall für WiFi-Scans (wird von LittleFS geladen)
+long lastWifiScanTime = 0;     // Zeitpunkt des letzten WiFi-Scans
+long wifiScanInterval = 60000; // Intervall für WiFi-Scans (wird von LittleFS geladen)
 
 // Instanzen für die WLAN- und MQTT-Kommunikation
-WiFiClient espClient;             // Der TCP-Client, der die WLAN-Verbindung verwaltet
-PubSubClient client(espClient);   // Der MQTT-Client, der über espClient kommuniziert
+WiFiClient espClient;           // Der TCP-Client, der die WLAN-Verbindung verwaltet
+PubSubClient client(espClient); // Der MQTT-Client, der über espClient kommuniziert
 
 // ----------------------------------------
 // Funktion: sendDeviceSettings
@@ -109,7 +113,8 @@ void updateDeviceSettings(String payloadString) {
     if (newName != currentDeviceName) {
       currentDeviceName = newName;
       deviceSettings.deviceName = newName;
-      Serial.print("Gerätename aktualisiert zu: "); Serial.println(currentDeviceName);
+      Serial.print("Gerätename aktualisiert zu: ");
+      Serial.println(currentDeviceName);
       settingsChanged = true;
     }
   }
@@ -117,13 +122,15 @@ void updateDeviceSettings(String payloadString) {
   if (doc.containsKey("wifiScanInterval")) {
     long newInterval = doc["wifiScanInterval"].as<long>();
     // Intervall muss mindestens 5 Sekunden sein und muss sich vom aktuellen Wert unterscheiden
-    if (newInterval > 5000 && newInterval != wifiScanInterval) { 
+    if (newInterval > 5000 && newInterval != wifiScanInterval) {
       wifiScanInterval = newInterval; // Aktualisiere den globalen Timer für den nächsten Scan
       deviceSettings.wifiScanInterval = newInterval; // Speichere auch in der Settings-Struktur
-      Serial.print("WiFi Scan Intervall aktualisiert zu: "); Serial.println(wifiScanInterval);
+      Serial.print("WiFi Scan Intervall aktualisiert zu: ");
+      Serial.println(wifiScanInterval);
       settingsChanged = true;
     } else {
-      Serial.print("Ungültiges oder unverändertes WiFi Scan Intervall: "); Serial.println(newInterval);
+      Serial.print("Ungültiges oder unverändertes WiFi Scan Intervall: ");
+      Serial.println(newInterval);
     }
   }
 
@@ -152,7 +159,10 @@ void updateDeviceSettings(String payloadString) {
         String newMode = gpio["mode"].as<String>();
         if (newMode != gpioConfigs[foundIdx].mode) {
           gpioConfigs[foundIdx].mode = newMode;
-          Serial.print("GPIO Pin "); Serial.print(pinNum); Serial.print(" Mode aktualisiert zu: "); Serial.println(newMode);
+          Serial.print("GPIO Pin ");
+          Serial.print(pinNum);
+          Serial.print(" Mode aktualisiert zu: ");
+          Serial.println(newMode);
           pinChanged = true;
         }
       }
@@ -160,7 +170,10 @@ void updateDeviceSettings(String payloadString) {
         String newLabel = gpio["label"].as<String>();
         if (newLabel != gpioConfigs[foundIdx].label) {
           gpioConfigs[foundIdx].label = newLabel;
-          Serial.print("GPIO Pin "); Serial.print(pinNum); Serial.print(" Label aktualisiert zu: "); Serial.println(newLabel);
+          Serial.print("GPIO Pin ");
+          Serial.print(pinNum);
+          Serial.print(" Label aktualisiert zu: ");
+          Serial.println(newLabel);
           pinChanged = true;
         }
       }
@@ -194,10 +207,21 @@ void updateDeviceSettings(String payloadString) {
 // Pins auf dem ESP32-DevKitC V4:
 // Vermeide GPIOs 0, 1, 3, 5, 6-11 (Flash-Pins), 12 (Boot-Pin), 14 (Boot-Pin), 15 (Boot-Pin)
 
-#define PIN_2 2
-#define PIN_4 4
-#define PIN_16 16
-#define PIN_17 17
+Device getDevicePreset() {
+  if (String(BOARD_TYPE) == "ESP32_Dev_Kit_C_V4") {
+    return ESP32_Dev_Kit_C_V4;
+  }
+  return {
+    "Unknown_Device", {}
+  };
+}
+
+const Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
+
+// #define PIN_2 2
+// #define PIN_4 4
+// #define PIN_16 16
+// #define PIN_17 17
 
 // Array speichert die aktuellen logischen Zustände (HIGH/LOW) der steuerbaren Pins
 int gpio_states[4] = {LOW, LOW, LOW, LOW};
@@ -217,7 +241,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Nachricht empfangen auf Topic: [");
   Serial.print(topic);
   Serial.print("] Payload: ");
-  
+
   // Konvertiere das Payload (byte array) zu einem String für einfachere Verarbeitung
   String payloadString = "";
   for (int i = 0; i < length; i++) {
@@ -251,8 +275,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
         continue; // Diesen Befehl überspringen
       }
 
-      int pinNum = pinObj["pinNumber"].as<int>();   // Extrahiere die Pin-Nummer
-      String stateStr = pinObj["state"].as<String>(); // Extrahiere den Zustand ("ON", "OFF", "1", "0")
+      int pinNum = pinObj["pinNumber"].as<int>(); // Extrahiere die Pin-Nummer
+      String stateStr =
+          pinObj["state"].as<String>(); // Extrahiere den Zustand ("ON", "OFF", "1", "0")
 
       int newState = LOW; // Standardmäßig LOW
       // Konvertiere den String-Zustand in HIGH/LOW
@@ -304,8 +329,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (String(topic) == topic_gpio_get_sub) {
     Serial.println("Anfrage empfangen auf /gpio/get Topic. Sende GPIO-Zustände...");
     reportGpioStates(); // Sende den aktuellen Status aller GPIOs
-  }
-  else if (String(topic) == topic_settings_get_sub) {
+  } else if (String(topic) == topic_settings_get_sub) {
     Serial.println("Anfrage empfangen auf /settings/get Topic. Sende aktuelle Einstellungen...");
     sendDeviceSettings(); // Funktion zum Senden der aktuellen Einstellungen
   }
@@ -359,17 +383,14 @@ void reconnect_mqtt() {
     Serial.print("Versuche MQTT-Verbindung...");
 
     // Versuche, eine Verbindung zum MQTT-Broker herzustellen
-    if (client.connect(
-          deviceId.c_str(),         // Client-ID (eindeutige Geräte-ID)
-          mqtt_user,                // MQTT-Benutzername
-          mqtt_pass,                // MQTT-Passwort
-          topic_status_pub.c_str(), // willTopic
-          0,                        // willQoS
-          true,                     // willRetain
-          "{\"status\":\"offline\"}" // willMessage
-          )
-        )
-      {
+    if (client.connect(deviceId.c_str(),          // Client-ID (eindeutige Geräte-ID)
+                       mqtt_user,                 // MQTT-Benutzername
+                       mqtt_pass,                 // MQTT-Passwort
+                       topic_status_pub.c_str(),  // willTopic
+                       0,                         // willQoS
+                       true,                      // willRetain
+                       "{\"status\":\"offline\"}" // willMessage
+                       )) {
       Serial.println("verbunden!");
 
       // Sende sofort nach dem Connect eine "online"-Statusnachricht (LWT wird überschrieben)
@@ -378,17 +399,17 @@ void reconnect_mqtt() {
       // WICHTIG: Hier alle Topics abonnieren, die dieser ESP32 empfangen soll.
       // Diese Subscriptions gehen verloren, wenn die Verbindung abbricht und müssen
       // bei jedem Reconnect erneuert werden.
-      client.subscribe(topic_gpio_set_sub.c_str());     // Abonnieren für GPIO-Steuerbefehle
-      client.subscribe(topic_status_get_sub.c_str());   // Abonnieren für Status-Anfragen
-      client.subscribe(topic_status_get_all_sub.c_str()); // Abonnieren für Status-Anfragen aller Geräte
-      client.subscribe(topic_wifi_get_sub.c_str());     // Abonnieren für WiFi-Scan-Anfragen
-      client.subscribe(topic_gpio_get_sub.c_str());     // Abonnieren für GPIO-Status-Anfragen
+      client.subscribe(topic_gpio_set_sub.c_str());   // Abonnieren für GPIO-Steuerbefehle
+      client.subscribe(topic_status_get_sub.c_str()); // Abonnieren für Status-Anfragen
+      client.subscribe(
+          topic_status_get_all_sub.c_str());        // Abonnieren für Status-Anfragen aller Geräte
+      client.subscribe(topic_wifi_get_sub.c_str()); // Abonnieren für WiFi-Scan-Anfragen
+      client.subscribe(topic_gpio_get_sub.c_str()); // Abonnieren für GPIO-Status-Anfragen
       client.subscribe(topic_settings_get_sub.c_str()); // Abonnieren für Settings-Anfragen
       client.subscribe(topic_settings_set_sub.c_str()); // Abonnieren für Setting-Änderungsbefehle
 
       // Initialen GPIO-Status senden (für Dashboard-Initialisierung)
       reportGpioStates();
-
     } else {
       Serial.print("Fehlgeschlagen, rc=");
       Serial.print(client.state()); // Zeigt den Fehlercode des MQTT-Clients
@@ -406,12 +427,13 @@ void sendHeartbeat() {
   Serial.println("Sende Heartbeat...");
   lastHeartbeatTime = millis(); // Aktualisiert den Zeitpunkt des letzten Heartbeats
 
-  DynamicJsonDocument doc(512); // ArduinoJson Dokument für den Heartbeat-Payload (512 Bytes für mehr Puffer)
+  DynamicJsonDocument doc(
+      512); // ArduinoJson Dokument für den Heartbeat-Payload (512 Bytes für mehr Puffer)
 
-  doc["status"] = "online";      // Status des Geräts
-  doc["wifi"] = WiFi.SSID();     // Aktuell verbundenes WLAN-SSID
-  doc["rssi"] = WiFi.RSSI();     // Signalstärke des verbundenen WLANs
-  doc["uptime"] = millis() / 1000; // Uptime in Sekunden
+  doc["status"] = "online";              // Status des Geräts
+  doc["wifi"] = WiFi.SSID();             // Aktuell verbundenes WLAN-SSID
+  doc["rssi"] = WiFi.RSSI();             // Signalstärke des verbundenen WLANs
+  doc["uptime"] = millis() / 1000;       // Uptime in Sekunden
   doc["deviceName"] = currentDeviceName; // Name des Geräts
 
   // Erstellt das GPIO-States-Array im neuen Format
@@ -434,7 +456,9 @@ void sendHeartbeat() {
   Serial.println(payload);
 
   if (client.connected()) {
-    client.publish(topic_status_pub.c_str(), payload.c_str(), true); // Veröffentlicht die Nachricht (retained = true)
+    client.publish(topic_status_pub.c_str(),
+                   payload.c_str(),
+                   true); // Veröffentlicht die Nachricht (retained = true)
   } else {
     Serial.println("MQTT Client ist NICHT verbunden, Heartbeat nicht gesendet.");
   }
@@ -446,19 +470,22 @@ void sendHeartbeat() {
 // Nutzt einen nicht-blockierenden Scan-Mechanismus.
 // ----------------------------------------
 void performWifiScan() {
-  if (wifiScanning) return; // Nicht starten, wenn bereits ein Scan läuft
-  
+  if (wifiScanning)
+    return; // Nicht starten, wenn bereits ein Scan läuft
+
   Serial.println("Starte nicht-blockierenden WLAN-Scan...");
   lastWifiScanTime = millis(); // Aktualisiert den Zeitpunkt des letzten Scans
 
   // WiFi.scanNetworks(true) startet einen nicht-blockierenden Scan im Hintergrund
   int n = WiFi.scanNetworks(true); // 'true' für asynchronen/nicht-blockierenden Scan
-  if (n == -1) { // -1 bedeutet, Scan wurde gestartet, aber ist noch nicht fertig
+  if (n == -1) {                   // -1 bedeutet, Scan wurde gestartet, aber ist noch nicht fertig
     wifiScanning = true;
     Serial.println("WLAN-Scan im Hintergrund gestartet.");
-  } else if (n == -2) { // -2 bedeutet, dass der Scan bereits läuft (sollte durch 'if(wifiScanning)' abgefangen werden)
+  } else if (n == -2) { // -2 bedeutet, dass der Scan bereits läuft (sollte durch 'if(wifiScanning)'
+                        // abgefangen werden)
     Serial.println("WLAN-Scan läuft bereits.");
-  } else { // >= 0, Scan ist aus irgendeinem Grund sofort fertig (unwahrscheinlich bei nicht-blockierendem Scan)
+  } else { // >= 0, Scan ist aus irgendeinem Grund sofort fertig (unwahrscheinlich bei
+           // nicht-blockierendem Scan)
     Serial.println("WLAN-Scan unerwartet sofort fertig.");
     processWifiScanResults(n); // Ergebnisse direkt verarbeiten
   }
@@ -485,35 +512,38 @@ void processWifiScanResults(int n) {
   } else {
     // DynamicJsonDocument mit ausreichender Kapazität für Scan-Ergebnisse
     // 2048 Bytes sind eine gute Schätzung für bis zu 15-20 Netzwerke.
-    DynamicJsonDocument doc(2048); 
+    DynamicJsonDocument doc(2048);
 
-    JsonObject root = doc.to<JsonObject>();            // Erstellt das Wurzelobjekt des JSON
+    JsonObject root = doc.to<JsonObject>();                  // Erstellt das Wurzelobjekt des JSON
     JsonArray networks = root.createNestedArray("networks"); // Erstellt ein Array für die Netzwerke
 
     // Fügt jedes gefundene Netzwerk als Objekt zum JSON-Array hinzu
     for (int i = 0; i < n; ++i) {
       JsonObject network = networks.createNestedObject();
-      network["ssid"] = WiFi.SSID(i);         // SSID des Netzwerks
-      network["rssi"] = WiFi.RSSI(i);         // Signalstärke
+      network["ssid"] = WiFi.SSID(i);                 // SSID des Netzwerks
+      network["rssi"] = WiFi.RSSI(i);                 // Signalstärke
       network["encryption"] = WiFi.encryptionType(i); // Verschlüsselungstyp (als Zahl)
     }
 
     String json_output;
     serializeJson(doc, json_output); // Serialisiert das JSON-Dokument in einen String
 
-    Serial.print("Heap nach JSON-Erstellung: "); Serial.println(ESP.getFreeHeap()); // Debug-Ausgabe des freien Heaps
-    Serial.print("Größe der JSON-Nachricht: "); Serial.print(json_output.length()); // Debug-Ausgabe der Nachrichtengröße
+    Serial.print("Heap nach JSON-Erstellung: ");
+    Serial.println(ESP.getFreeHeap()); // Debug-Ausgabe des freien Heaps
+    Serial.print("Größe der JSON-Nachricht: ");
+    Serial.print(json_output.length()); // Debug-Ausgabe der Nachrichtengröße
     Serial.println(" Bytes");
 
     if (client.connected()) {
       Serial.println("MQTT Client ist verbunden, sende WiFi Scan.");
-      client.publish(topic_wifi_scan_pub.c_str(), json_output.c_str()); // Veröffentlicht die Nachricht
+      client.publish(topic_wifi_scan_pub.c_str(),
+                     json_output.c_str()); // Veröffentlicht die Nachricht
     } else {
       Serial.println("MQTT Client ist NICHT verbunden, WiFi Scan nicht gesendet.");
     }
   }
 
-  WiFi.scanDelete(); // Scan-Ergebnisse löschen, um Speicher freizugeben und Heap zu entlasten
+  WiFi.scanDelete();    // Scan-Ergebnisse löschen, um Speicher freizugeben und Heap zu entlasten
   wifiScanning = false; // Setzt das Flag zurück, da der Scan abgeschlossen ist
 }
 
@@ -568,20 +598,25 @@ void setup() {
       Serial.println("Keine gespeicherten Einstellungen gefunden, verwende Standards.");
     }
   }
-  
+
   // Aktualisiere die lokalen Variablen mit geladenen Einstellungen
   wifiScanInterval = deviceSettings.wifiScanInterval;
   currentDeviceName = deviceSettings.deviceName;
-  
+
   // Debug-Ausgabe der geladenen Settings
   printSettings();
 
   // Debug-Ausgabe der Secret-Werte (optional, nur für Entwicklung)
-  Serial.print("WLAN SSID: "); Serial.println(ssid);
-  Serial.print("MQTT Broker IP: "); Serial.println(mqtt_broker);
-  Serial.print("MQTT Username: "); Serial.println(mqtt_user);
-  Serial.print("MQTT Password: "); Serial.println(mqtt_pass);
-  Serial.print("Base Device Name: "); Serial.println(BASE_DEVICE_NAME);
+  Serial.print("WLAN SSID: ");
+  Serial.println(ssid);
+  Serial.print("MQTT Broker IP: ");
+  Serial.println(mqtt_broker);
+  Serial.print("MQTT Username: ");
+  Serial.println(mqtt_user);
+  Serial.print("MQTT Password: ");
+  Serial.println(mqtt_pass);
+  Serial.print("Base Device Name: ");
+  Serial.println(BASE_DEVICE_NAME);
 
   // GPIO Pins als OUTPUT konfigurieren und initialen Zustand auf LOW setzen
   for (int i = 0; i < NUM_PINS; i++) {
@@ -601,7 +636,8 @@ void setup() {
     // Übernehme geladene configs (falls vorhanden) basierend auf pinNumber
     for (int j = 0; j < NUM_PINS; j++) {
       int loadedPin = gpioConfigs[j].pinNumber;
-      if (loadedPin < 0) continue;
+      if (loadedPin < 0)
+        continue;
       for (int k = 0; k < NUM_PINS; k++) {
         if (control_pins[k] == loadedPin) {
           temp[k] = gpioConfigs[j];
@@ -610,14 +646,15 @@ void setup() {
       }
     }
     // Kopiere zurück
-    for (int i = 0; i < NUM_PINS; i++) gpioConfigs[i] = temp[i];
+    for (int i = 0; i < NUM_PINS; i++)
+      gpioConfigs[i] = temp[i];
   }
 
   // --- Generiere die eindeutige Device ID ---
   // Initialisiere WiFi im STA-Modus, um die MAC-Adresse auslesen zu können
   WiFi.mode(WIFI_STA);
   delay(100); // Gib dem WiFi-Modul Zeit zur Initialisierung
-  
+
   // Holt die 6-Byte MAC-Adresse des WiFi-Moduls
   uint8_t mac[6];
   WiFi.macAddress(mac);
@@ -627,7 +664,8 @@ void setup() {
   sprintf(macStr, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
   deviceId = String(macStr);
-  Serial.print("Generated Device ID: "); Serial.println(deviceId);
+  Serial.print("Generated Device ID: ");
+  Serial.println(deviceId);
   // --- Ende Generierung ---
 
   // --- MQTT Topics initialisieren ---
@@ -647,25 +685,34 @@ void setup() {
   topic_settings_set_sub = "esp32/" + deviceId + "/settings/set";
 
   // Debug-Ausgabe der generierten Topics zur Überprüfung
-  Serial.print("MQTT Topic Heartbeat: "); Serial.println(topic_status_pub);
-  Serial.print("MQTT Topic WiFi Scan: "); Serial.println(topic_wifi_scan_pub);
-  Serial.print("MQTT Topic GPIO State: "); Serial.println(topic_gpio_state_pub);
-  Serial.print("MQTT Topic GPIO Set (Sub): "); Serial.println(topic_gpio_set_sub);
-  Serial.print("MQTT Topic Status Get (Sub): "); Serial.println(topic_status_get_sub);
-  Serial.print("MQTT Topic WiFi Get (Sub): "); Serial.println(topic_wifi_get_sub);
-  Serial.print("MQTT Topic GPIO Get (Sub): "); Serial.println(topic_gpio_get_sub);
-  Serial.print("MQTT Topic Settings Get (Sub): "); Serial.println(topic_settings_get_sub);
-  Serial.print("MQTT Topic Settings Publish: "); Serial.println(topic_settings_pub);
-  Serial.print("MQTT Topic Settings Set (Sub): "); Serial.println(topic_settings_set_sub);
+  Serial.print("MQTT Topic Heartbeat: ");
+  Serial.println(topic_status_pub);
+  Serial.print("MQTT Topic WiFi Scan: ");
+  Serial.println(topic_wifi_scan_pub);
+  Serial.print("MQTT Topic GPIO State: ");
+  Serial.println(topic_gpio_state_pub);
+  Serial.print("MQTT Topic GPIO Set (Sub): ");
+  Serial.println(topic_gpio_set_sub);
+  Serial.print("MQTT Topic Status Get (Sub): ");
+  Serial.println(topic_status_get_sub);
+  Serial.print("MQTT Topic WiFi Get (Sub): ");
+  Serial.println(topic_wifi_get_sub);
+  Serial.print("MQTT Topic GPIO Get (Sub): ");
+  Serial.println(topic_gpio_get_sub);
+  Serial.print("MQTT Topic Settings Get (Sub): ");
+  Serial.println(topic_settings_get_sub);
+  Serial.print("MQTT Topic Settings Publish: ");
+  Serial.println(topic_settings_pub);
+  Serial.print("MQTT Topic Settings Set (Sub): ");
+  Serial.println(topic_settings_set_sub);
   // --- Ende Topics Initialisierung ---
-
 
   setup_wifi(); // Stellt die WLAN-Verbindung her
 
   // MQTT-Client konfigurieren
   client.setServer(mqtt_broker, mqtt_port); // Setzt die Broker-Adresse
-  client.setCallback(callback);             // Registriert die Callback-Funktion für eingehende Nachrichten
-  client.setBufferSize(2048);               // Erhöht den internen MQTT-Puffer für größere Payloads
+  client.setCallback(callback); // Registriert die Callback-Funktion für eingehende Nachrichten
+  client.setBufferSize(2048);   // Erhöht den internen MQTT-Puffer für größere Payloads
 }
 
 // ----------------------------------------

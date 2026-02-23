@@ -1,8 +1,8 @@
 #ifndef LITTLEFS_SETTINGS_H
 #define LITTLEFS_SETTINGS_H
 
-#include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <LittleFS.h>
 
 // ----------------------------------------
 // LittleFS Settings Verwaltung
@@ -14,7 +14,7 @@
 
 // Struktur für die Geräteeinstellungen
 struct DeviceSettings {
-  long wifiScanInterval = 60000;  // Standard: 60 Sekunden
+  long wifiScanInterval = 60000; // Standard: 60 Sekunden
   String deviceName = "ESP32-Dashboard";
 };
 
@@ -38,20 +38,22 @@ DeviceSettings deviceSettings;
 // ----------------------------------------
 bool initLittleFS() {
   Serial.println("LittleFS wird initialisiert...");
-  
+
   if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
     Serial.println("LittleFS MOUNT FAILED!");
     return false;
   }
-  
+
   Serial.println("LittleFS erfolgreich gemountet!");
-  
+
   // Debug: Zeige verfügbaren Speicher
   size_t totalBytes = LittleFS.totalBytes();
   size_t usedBytes = LittleFS.usedBytes();
-  Serial.printf("LittleFS Speicher - Gesamt: %u Bytes, Verwendet: %u Bytes, Frei: %u Bytes\n", 
-    totalBytes, usedBytes, totalBytes - usedBytes);
-  
+  Serial.printf("LittleFS Speicher - Gesamt: %u Bytes, Verwendet: %u Bytes, Frei: %u Bytes\n",
+                totalBytes,
+                usedBytes,
+                totalBytes - usedBytes);
+
   return true;
 }
 
@@ -98,7 +100,7 @@ bool saveSettings() {
   Serial.print("Settings erfolgreich gespeichert (");
   Serial.print(bytesWritten);
   Serial.println(" Bytes)");
-  
+
   return true;
 }
 
@@ -109,7 +111,7 @@ bool saveSettings() {
 // ----------------------------------------
 bool loadSettings() {
   Serial.println("Versuche Settings von LittleFS zu laden...");
-  
+
   // Überprüfe, ob die Datei existiert
   if (!LittleFS.exists(SETTINGS_FILE)) {
     Serial.println("Settings-Datei nicht gefunden. Verwende Standard-Einstellungen.");
@@ -155,10 +157,14 @@ bool loadSettings() {
     JsonArray ga = doc["gpioConfigs"].as<JsonArray>();
     int idx = 0;
     for (JsonObject g : ga) {
-      if (idx >= NUM_PINS) break;
-      if (g.containsKey("pinNumber")) gpioConfigs[idx].pinNumber = g["pinNumber"].as<int>();
-      if (g.containsKey("mode")) gpioConfigs[idx].mode = g["mode"].as<String>();
-      if (g.containsKey("label")) gpioConfigs[idx].label = g["label"].as<String>();
+      if (idx >= NUM_PINS)
+        break;
+      if (g.containsKey("pinNumber"))
+        gpioConfigs[idx].pinNumber = g["pinNumber"].as<int>();
+      if (g.containsKey("mode"))
+        gpioConfigs[idx].mode = g["mode"].as<String>();
+      if (g.containsKey("label"))
+        gpioConfigs[idx].label = g["label"].as<String>();
       idx++;
     }
     Serial.println("GPIO-Metadaten geladen aus Settings.");
@@ -174,7 +180,7 @@ bool loadSettings() {
 // ----------------------------------------
 bool deleteSettings() {
   Serial.println("Lösche Settings-Datei...");
-  
+
   if (LittleFS.remove(SETTINGS_FILE)) {
     Serial.println("Settings-Datei erfolgreich gelöscht!");
     return true;
@@ -198,9 +204,12 @@ void printSettings() {
   // GPIO Metadata ausgeben (falls definiert)
   Serial.println("GPIO Metadaten:");
   for (int i = 0; i < NUM_PINS; i++) {
-    Serial.print("  Pin "); Serial.print(gpioConfigs[i].pinNumber);
-    Serial.print(" - Mode: "); Serial.print(gpioConfigs[i].mode);
-    Serial.print(" - Label: "); Serial.println(gpioConfigs[i].label);
+    Serial.print("  Pin ");
+    Serial.print(gpioConfigs[i].pinNumber);
+    Serial.print(" - Mode: ");
+    Serial.print(gpioConfigs[i].mode);
+    Serial.print(" - Label: ");
+    Serial.println(gpioConfigs[i].label);
   }
   Serial.println("===========================================\n");
 }
