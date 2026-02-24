@@ -211,9 +211,7 @@ Device getDevicePreset() {
   if (String(BOARD_TYPE) == "ESP32_Dev_Kit_C_V4") {
     return ESP32_Dev_Kit_C_V4;
   }
-  return {
-    "Unknown_Device", {}
-  };
+  return ESP32_Custom;
 }
 
 const Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
@@ -226,9 +224,9 @@ const Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen b
 // Array speichert die aktuellen logischen Zustände (HIGH/LOW) der steuerbaren Pins
 int gpio_states[4] = {LOW, LOW, LOW, LOW};
 // Array der tatsächlich verwendeten GPIO-Nummern. Reihenfolge muss gpio_states entsprechen.
-int control_pins[] = {PIN_2, PIN_4, PIN_16, PIN_17};
+// int control_pins[] = {PIN_2, PIN_4, PIN_16, PIN_17};
 // Anzahl der definierten Pins
-const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
+// const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
 
 // GPIO Metadaten (Label/Group) - wird in littlefs_settings.h persistiert
 GPIOConfig gpioConfigs[NUM_PINS];

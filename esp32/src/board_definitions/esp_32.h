@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <algorithm>
 #include <map>
 #include <string>
@@ -14,14 +15,19 @@ enum class PinMode {
   None
 };
 
+enum class DigitalOutputState { LOW_STATE, HIGH_STATE };
+
 using PinValue = std::variant<bool, // Digital_Input/Output: true/false
                               int,
                               float,
+                              DigitalOutputState,
                               std::monostate // Für Modi, die keinen Wert haben (z. B. None)
                               >;
 
 struct Pin {
-  std::string name;
+  std::string id;
+  std::string pinNumber; // Physische Pin-Nummer auf dem Board
+  std::string label; // Optional, kann leer sein
   std::vector<PinMode> modes;
   std::vector<std::string> specialFunctions; // optional, kann leer sein
   PinMode currentMode;
@@ -29,7 +35,15 @@ struct Pin {
 
   // Typsichere Setter
   bool setValue(bool val) {
-    if (currentMode == PinMode::Digital_Input || currentMode == PinMode::Digital_Output) {
+    if (currentMode == PinMode::Digital_Input) {
+      value = val;
+      return true;
+    }
+    return false;
+  }
+
+  bool setValue(DigitalOutputState val) {
+    if (currentMode == PinMode::Digital_Output) {
       value = val;
       return true;
     }
@@ -60,9 +74,12 @@ struct Pin {
 
     currentMode = mode;
     if (mode == PinMode::None) {
+      pinMode(std::stoi(pinNumber), INPUT_PULLUP); // Setze Pin auf Eingang, um Stromverbrauch zu minimieren
       value = std::monostate{};
-    } else if (mode == PinMode::Digital_Input || mode == PinMode::Digital_Output) {
-      value = false; // Standardwert für digitale Pins
+    } else if (mode == PinMode::Digital_Input) {
+      value = false; // Standardwert für digitale Eingänge
+    } else if (mode == PinMode::Digital_Output) {
+      value = DigitalOutputState::LOW_STATE; // Standardwert für digitale Ausgänge
     } else if (mode == PinMode::PWM || mode == PinMode::Analog_Input) {
       value = 0; // Standardwert für analoge Pins
     } else if (mode == PinMode::Analog_Output) {
@@ -74,5 +91,5 @@ struct Pin {
 
 struct Device {
   std::string type;
-  std::map<int, Pin> pins; // Schlüssel: Pin-Nummer (z. B. 0,1,2,...)
+  std::map<int, Pin> pins;
 };
