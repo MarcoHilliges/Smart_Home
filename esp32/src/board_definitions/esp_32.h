@@ -1,5 +1,8 @@
+#pragma once
+
 #include <Arduino.h>
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <variant>
@@ -27,7 +30,7 @@ using PinValue = std::variant<bool, // Digital_Input/Output: true/false
 struct Pin {
   std::string id;
   std::string pinNumber; // Physische Pin-Nummer auf dem Board
-  std::string label; // Optional, kann leer sein
+  std::string label;     // Optional, kann leer sein
   std::vector<PinMode> modes;
   std::vector<std::string> specialFunctions; // optional, kann leer sein
   PinMode currentMode;
@@ -45,6 +48,7 @@ struct Pin {
   bool setValue(DigitalOutputState val) {
     if (currentMode == PinMode::Digital_Output) {
       value = val;
+      digitalWrite(std::stoi(pinNumber), val == DigitalOutputState::HIGH_STATE ? HIGH : LOW);
       return true;
     }
     return false;
@@ -74,12 +78,14 @@ struct Pin {
 
     currentMode = mode;
     if (mode == PinMode::None) {
-      pinMode(std::stoi(pinNumber), INPUT_PULLUP); // Setze Pin auf Eingang, um Stromverbrauch zu minimieren
+      pinMode(std::stoi(pinNumber),
+              INPUT_PULLUP); // Setze Pin auf Eingang, um Stromverbrauch zu minimieren
       value = std::monostate{};
     } else if (mode == PinMode::Digital_Input) {
       value = false; // Standardwert für digitale Eingänge
     } else if (mode == PinMode::Digital_Output) {
       value = DigitalOutputState::LOW_STATE; // Standardwert für digitale Ausgänge
+      digitalWrite(std::stoi(pinNumber), LOW); // Setze physischen Pin auf LOW
     } else if (mode == PinMode::PWM || mode == PinMode::Analog_Input) {
       value = 0; // Standardwert für analoge Pins
     } else if (mode == PinMode::Analog_Output) {
@@ -91,5 +97,10 @@ struct Pin {
 
 struct Device {
   std::string type;
+  std::string deviceName;
+  std::uint32_t wifiScanInterval;
   std::map<int, Pin> pins;
 };
+
+extern const Device ESP32_Custom;
+extern const Device ESP32_Dev_Kit_C_V4;

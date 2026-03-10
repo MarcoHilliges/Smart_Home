@@ -12,25 +12,18 @@
 #define SETTINGS_FILE "/settings.json"
 #define FORMAT_LITTLEFS_IF_FAILED true
 
-// Struktur für die Geräteeinstellungen
-struct DeviceSettings {
-  long wifiScanInterval = 60000; // Standard: 60 Sekunden
-  String deviceName = "ESP32-Dashboard";
-};
-
 // Struktur für GPIO-Metadaten (Label / Mode)
-struct GPIOConfig {
-  int pinNumber = -1;
-  String mode = "none"; // "lamp" | "pump" | "none"
-  String label = "";
-};
+// struct GPIOConfig {
+//   int pinNumber = -1;
+//   String mode = "none"; // "lamp" | "pump" | "none"
+//   String label = "";
+// };
 
 // Externe Referenzen: werden in main.cpp definiert
-extern const int NUM_PINS;
-extern GPIOConfig gpioConfigs[];
+// extern const int NUM_PINS;
+// extern GPIOConfig gpioConfigs[];
 
-// Globale Instanz für die aktuellen Einstellungen
-DeviceSettings deviceSettings;
+extern Device device; // Aktuelles Device mit Pin-Definitionen
 
 // ----------------------------------------
 // Funktion: initLittleFS
@@ -69,16 +62,17 @@ bool saveSettings() {
   DynamicJsonDocument doc(512);
 
   // Füge die aktuellen Einstellungen hinzu
-  doc["wifiScanInterval"] = deviceSettings.wifiScanInterval;
-  doc["deviceName"] = deviceSettings.deviceName;
+  doc["wifiScanInterval"] = device.wifiScanInterval;
+  doc["deviceName"] = device.deviceName;
 
-  // Wenn GPIO-Metadaten vorhanden sind, in die Settings schreiben
-  JsonArray gpioArray = doc.createNestedArray("gpioConfigs");
-  for (int i = 0; i < NUM_PINS; i++) {
-    JsonObject g = gpioArray.createNestedObject();
-    g["pinNumber"] = gpioConfigs[i].pinNumber;
-    g["mode"] = gpioConfigs[i].mode;
-    g["label"] = gpioConfigs[i].label;
+  JsonObject gpioObj = doc.createNestedObject("gpioConfigs");
+  for (const auto& [pinNum, pin] : device.pins) {
+    JsonObject p = gpioObj.createNestedObject(String(pinNum));
+    p["id"] = pin.id;
+    p["pinNumber"] = pin.pinNumber;
+    p["label"] = pin.label;
+    p["currentMode"] = pin.currentMode;
+    p["value"] = pin.value;
   }
 
   // Öffne die Datei zum Schreiben (überschreibe, falls sie existiert)
@@ -141,32 +135,44 @@ bool loadSettings() {
 
   // Extrahiere die Einstellungen aus der JSON
   if (doc.containsKey("wifiScanInterval")) {
-    deviceSettings.wifiScanInterval = doc["wifiScanInterval"].as<long>();
+    device.wifiScanInterval = doc["wifiScanInterval"].as<uint32_t>();
     Serial.print("wifiScanInterval geladen: ");
-    Serial.println(deviceSettings.wifiScanInterval);
+    Serial.println(device.wifiScanInterval);
   }
 
   if (doc.containsKey("deviceName")) {
-    deviceSettings.deviceName = doc["deviceName"].as<String>();
+    device.deviceName = doc["deviceName"].as<const char*>();
     Serial.print("deviceName geladen: ");
-    Serial.println(deviceSettings.deviceName);
+    Serial.println(device.deviceName.c_str());
   }
 
   // Lade GPIO-Metadaten falls vorhanden
-  if (doc.containsKey("gpioConfigs") && doc["gpioConfigs"].is<JsonArray>()) {
-    JsonArray ga = doc["gpioConfigs"].as<JsonArray>();
-    int idx = 0;
-    for (JsonObject g : ga) {
-      if (idx >= NUM_PINS)
-        break;
-      if (g.containsKey("pinNumber"))
-        gpioConfigs[idx].pinNumber = g["pinNumber"].as<int>();
-      if (g.containsKey("mode"))
-        gpioConfigs[idx].mode = g["mode"].as<String>();
-      if (g.containsKey("label"))
-        gpioConfigs[idx].label = g["label"].as<String>();
-      idx++;
+  if (doc.containsKey("gpioConfigs") && doc["gpioConfigs"].is<JsonObject>()) {
+    JsonObject ga = doc["gpioConfigs"].as<JsonObject>();
+    for (JsonPair kvp : ga) {
+      int pinNum = atoi(kvp.key().c_str());
+      if (device.pins.find(pinNum) != device.pins.end()) {
+        JsonObject g = kvp.value().as<JsonObject>();
+        if (g.containsKey("id"))
+          device.pins[pinNum].id = g["id"].as<int>();
+        if (g.containsKey("pinNumber"))
+          device.pins[pinNum].pinNumber = g["pinNumber"].as<int>();
+        if (g.containsKey("label"))
+          device.pins[pinNum].label = g["label"].as<const char*>();
+        if (g.containsKey("currentMode"))
+          device.pins[pinNum].setMode(g["currentMode"] | PinMode::None);
+        if (g.containsKey("value")) {
+          device.pins[pinNum].value = g["value"].as<int>();
+          if (device.pins[pinNum].currentMode == PinMode::Digital_Output) {
+            device.pins[pinNum].setValue(g["value"].as<int>() ==
+                                                 static_cast<int>(DigitalOutputState::HIGH_STATE)
+                                             ? DigitalOutputState::HIGH_STATE
+                                             : DigitalOutputState::LOW_STATE);
+          }
+        }
+      }
     }
+
     Serial.println("GPIO-Metadaten geladen aus Settings.");
   }
 
@@ -197,20 +203,21 @@ bool deleteSettings() {
 void printSettings() {
   Serial.println("\n========== Aktuelle Einstellungen ==========");
   Serial.print("WiFi Scan Intervall: ");
-  Serial.print(deviceSettings.wifiScanInterval);
+  Serial.print(device.wifiScanInterval);
   Serial.println(" ms");
   Serial.print("Gerätename: ");
-  Serial.println(deviceSettings.deviceName);
+  Serial.println(device.deviceName.c_str());
   // GPIO Metadata ausgeben (falls definiert)
   Serial.println("GPIO Metadaten:");
-  for (int i = 0; i < NUM_PINS; i++) {
+  for (const auto& [pinNum, pin] : device.pins) {
     Serial.print("  Pin ");
-    Serial.print(gpioConfigs[i].pinNumber);
+    Serial.print(pinNum);
     Serial.print(" - Mode: ");
-    Serial.print(gpioConfigs[i].mode);
+    Serial.print(static_cast<int>(pin.currentMode));
     Serial.print(" - Label: ");
-    Serial.println(gpioConfigs[i].label);
+    Serial.println(pin.label.c_str());
   }
+
   Serial.println("===========================================\n");
 }
 

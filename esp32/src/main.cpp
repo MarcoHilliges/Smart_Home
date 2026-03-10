@@ -1,4 +1,3 @@
-#include "board_definitions/esp_32.cpp" // Enthält die Pin-Definitionen für das ESP32 DevKitC V4
 #include "board_definitions/esp_32.h"
 #include "littlefs_settings.h" // LittleFS-Verwaltung für Geräteeinstellungen
 #include "secrets.h"      // Enthält vertrauliche WLAN- und MQTT-Zugangsdaten. MUSS in .gitignore!
@@ -214,7 +213,8 @@ Device getDevicePreset() {
   return ESP32_Custom;
 }
 
-const Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
+Device device =
+    getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
 
 // #define PIN_2 2
 // #define PIN_4 4
@@ -222,14 +222,14 @@ const Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen b
 // #define PIN_17 17
 
 // Array speichert die aktuellen logischen Zustände (HIGH/LOW) der steuerbaren Pins
-int gpio_states[4] = {LOW, LOW, LOW, LOW};
+// int gpio_states[4] = {LOW, LOW, LOW, LOW};
 // Array der tatsächlich verwendeten GPIO-Nummern. Reihenfolge muss gpio_states entsprechen.
 // int control_pins[] = {PIN_2, PIN_4, PIN_16, PIN_17};
 // Anzahl der definierten Pins
 // const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
 
 // GPIO Metadaten (Label/Group) - wird in littlefs_settings.h persistiert
-GPIOConfig gpioConfigs[NUM_PINS];
+// GPIOConfig gpioConfigs[NUM_PINS];
 
 // ----------------------------------------
 // Funktion: MQTT Callback
