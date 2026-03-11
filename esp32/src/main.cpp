@@ -613,7 +613,6 @@ void setup() {
     Serial.println("KRITISCHER FEHLER: LittleFS konnte nicht initialisiert werden!");
     // Wir fahren trotzdem fort, verwenden aber Standard-Einstellungen
   } else {
-    // deleteSettings();
     // Versuche, die gespeicherten Einstellungen zu laden
     if (!loadSettings()) {
       Serial.println("Keine gespeicherten Einstellungen gefunden, verwende Standards.");
