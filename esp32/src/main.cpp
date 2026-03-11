@@ -40,8 +40,7 @@ String topic_settings_set_sub;   // Topic zum Abonnieren von Befehlen zur Einste
                                  // Geräteeinstellungen
 
 // Globale Variablen für den nicht-blockierenden Scan
-String currentDeviceName = BASE_DEVICE_NAME; // TODO: add this later | Gerätenamen anpassen
-bool wifiScanning = false;                   // Flag, ob ein WiFi-Scan läuft
+bool wifiScanning = false; // Flag, ob ein WiFi-Scan läuft
 
 // ----------------------------------------
 // Timer für periodische Aufgaben
@@ -50,8 +49,7 @@ bool wifiScanning = false;                   // Flag, ob ein WiFi-Scan läuft
 long lastHeartbeatTime = 0;           // Zeitpunkt des letzten Heartbeats
 const long heartbeatInterval = 30000; // Intervall für Heartbeats (30 Sekunden)
 
-long lastWifiScanTime = 0;     // Zeitpunkt des letzten WiFi-Scans
-long wifiScanInterval = 60000; // Intervall für WiFi-Scans (wird von LittleFS geladen)
+long lastWifiScanTime = 0; // Zeitpunkt des letzten WiFi-Scans
 
 // Instanzen für die WLAN- und MQTT-Kommunikation
 WiFiClient espClient;           // Der TCP-Client, der die WLAN-Verbindung verwaltet
@@ -64,16 +62,16 @@ PubSubClient client(espClient); // Der MQTT-Client, der über espClient kommuniz
 void sendDeviceSettings() {
   DynamicJsonDocument doc(512); // Ausreichend für alle Einstellungen
 
-  doc["deviceName"] = currentDeviceName;
-  doc["wifiScanInterval"] = wifiScanInterval; // Der aktuell aktive Wert
+  doc["deviceName"] = device.deviceName;             // Aktueller Gerätename
+  doc["wifiScanInterval"] = device.wifiScanInterval; // Der aktuell aktive Wert
 
   // GPIO Metadaten anhängen
   JsonArray gpioArray = doc.createNestedArray("gpioConfigs");
-  for (int i = 0; i < NUM_PINS; i++) {
+  for (int i = 0; i < device.pins.size(); i++) {
     JsonObject g = gpioArray.createNestedObject();
-    g["pinNumber"] = gpioConfigs[i].pinNumber;
-    g["mode"] = gpioConfigs[i].mode;
-    g["label"] = gpioConfigs[i].label;
+    g["pinNumber"] = device.pins[i].pinNumber;
+    g["mode"] = device.pins[i].currentMode;
+    g["label"] = device.pins[i].label;
   }
 
   String payload;
@@ -108,25 +106,27 @@ void updateDeviceSettings(String payloadString) {
   bool settingsChanged = false;
 
   if (doc.containsKey("deviceName")) {
-    String newName = doc["deviceName"].as<String>();
-    if (newName != currentDeviceName) {
-      currentDeviceName = newName;
-      deviceSettings.deviceName = newName;
-      Serial.print("Gerätename aktualisiert zu: ");
-      Serial.println(currentDeviceName);
-      settingsChanged = true;
+    std::string newName = doc["deviceName"] | "";
+    if (newName != device.deviceName) {
+      bool isChanged = device.setDeviceName(newName);
+      if (isChanged) {
+        Serial.print("Gerätename aktualisiert zu: ");
+        Serial.println(device.deviceName.c_str());
+        settingsChanged = true;
+      }
     }
   }
 
   if (doc.containsKey("wifiScanInterval")) {
-    long newInterval = doc["wifiScanInterval"].as<long>();
+    uint32_t newInterval = doc["wifiScanInterval"].as<uint32_t>();
     // Intervall muss mindestens 5 Sekunden sein und muss sich vom aktuellen Wert unterscheiden
-    if (newInterval > 5000 && newInterval != wifiScanInterval) {
-      wifiScanInterval = newInterval; // Aktualisiere den globalen Timer für den nächsten Scan
-      deviceSettings.wifiScanInterval = newInterval; // Speichere auch in der Settings-Struktur
-      Serial.print("WiFi Scan Intervall aktualisiert zu: ");
-      Serial.println(wifiScanInterval);
-      settingsChanged = true;
+    if (newInterval > 5000 && newInterval != device.wifiScanInterval) {
+      bool isChanged = device.setWifiScanInterval(newInterval);
+      if (isChanged) {
+        Serial.print("WiFi Scan Intervall aktualisiert zu: ");
+        Serial.println(device.wifiScanInterval);
+        settingsChanged = true;
+      }
     } else {
       Serial.print("Ungültiges oder unverändertes WiFi Scan Intervall: ");
       Serial.println(newInterval);
@@ -137,43 +137,41 @@ void updateDeviceSettings(String payloadString) {
   if (doc.containsKey("gpioConfigs") && doc["gpioConfigs"].is<JsonArray>()) {
     JsonArray gpioArray = doc["gpioConfigs"].as<JsonArray>();
 
-    for (JsonObject gpio : gpioArray) {
+    for (JsonObject newGpioValues : gpioArray) {
       bool pinChanged = false;
 
-      int pinNum = gpio["pinNumber"].as<int>();
+      int pinNum = newGpioValues["pinNumber"].as<int>();
 
-      int foundIdx = -1;
-      for (int i = 0; i < NUM_PINS; i++) {
-        if (gpioConfigs[i].pinNumber == pinNum) {
-          foundIdx = i;
-          break;
-        }
-      }
-      if (foundIdx == -1) {
+      auto it = device.pins.find(pinNum);
+      if (it == device.pins.end()) {
         Serial.print("Unbekannte pinNumber in GPIO Metadaten: ");
         Serial.println(pinNum);
-        continue; // Nächsten Eintrag verarbeiten
+        continue;
       }
-      if (gpio.containsKey("mode")) {
-        String newMode = gpio["mode"].as<String>();
-        if (newMode != gpioConfigs[foundIdx].mode) {
-          gpioConfigs[foundIdx].mode = newMode;
+
+      if (newGpioValues.containsKey("mode")) {
+        std::string newMode = newGpioValues["mode"] | "None";
+        PinMode mode = device.pins[pinNum].convertStringToPinMode(newMode);
+        bool isChanged = device.pins[pinNum].setMode(mode);
+        if (isChanged) {
           Serial.print("GPIO Pin ");
           Serial.print(pinNum);
           Serial.print(" Mode aktualisiert zu: ");
-          Serial.println(newMode);
+          Serial.println(newMode.c_str());
           pinChanged = true;
         }
       }
-      if (gpio.containsKey("label")) {
-        String newLabel = gpio["label"].as<String>();
-        if (newLabel != gpioConfigs[foundIdx].label) {
-          gpioConfigs[foundIdx].label = newLabel;
-          Serial.print("GPIO Pin ");
-          Serial.print(pinNum);
-          Serial.print(" Label aktualisiert zu: ");
-          Serial.println(newLabel);
-          pinChanged = true;
+      if (newGpioValues.containsKey("label")) {
+        std::string newLabel = newGpioValues["label"] | "";
+        if (newLabel != device.pins[pinNum].label) {
+          bool isChanged = device.pins[pinNum].setLabel(newLabel);
+          if (isChanged) {
+            Serial.print("GPIO Pin ");
+            Serial.print(pinNum);
+            Serial.print(" Label aktualisiert zu: ");
+            Serial.println(newLabel.c_str());
+            pinChanged = true;
+          }
         }
       }
 
@@ -213,8 +211,7 @@ Device getDevicePreset() {
   return ESP32_Custom;
 }
 
-Device device =
-    getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
+Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
 
 // #define PIN_2 2
 // #define PIN_4 4
@@ -277,12 +274,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
       String stateStr =
           pinObj["state"].as<String>(); // Extrahiere den Zustand ("ON", "OFF", "1", "0")
 
-      int newState = LOW; // Standardmäßig LOW
-      // Konvertiere den String-Zustand in HIGH/LOW
+      int newState = 0; // Standardmäßig 0
+      // Konvertiere den String-Zustand in 1/0
       if (stateStr == "ON" || stateStr == "1" || stateStr == "HIGH") {
-        newState = HIGH;
+        newState = 1;
       } else if (stateStr == "OFF" || stateStr == "0" || stateStr == "LOW") {
-        newState = LOW;
+        newState = 0;
       } else {
         Serial.print("Unbekannter Zustand für Pin ");
         Serial.print(pinNum);
@@ -291,23 +288,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
         continue; // Diesen Pin überspringen und nächsten Pin in der JSON verarbeiten
       }
 
-      // Suche den Pin im control_pins-Array, um dessen Index zu finden und Zustand zu aktualisieren
-      bool pinFound = false;
-      for (int i = 0; i < NUM_PINS; i++) {
-        if (control_pins[i] == pinNum) {
-          digitalWrite(pinNum, newState); // Pin physisch schalten
-          gpio_states[i] = newState;      // Internen Zustand aktualisieren
-          Serial.print("GPIO ");
-          Serial.print(pinNum);
-          Serial.print(" auf ");
-          Serial.println(newState == HIGH ? "HIGH" : "LOW");
-          pinFound = true;
-          break; // Pin gefunden, Schleife beenden
-        }
-      }
-      if (!pinFound) {
-        Serial.print("Befehl für unbekannten oder nicht steuerbaren Pin empfangen: ");
-        Serial.println(pinNum);
+      int setValueSuccessfully = device.pins[pinNum].setValue(
+          newState == 1 ? DigitalOutputState::HIGH_STATE : DigitalOutputState::LOW_STATE);
+      if (!setValueSuccessfully) {
+        Serial.print("Fehler: Pin ");
+        Serial.print(pinNum);
+        Serial.println(
+            " ist nicht im Digital_Output Modus oder existiert nicht. Befehl ignoriert.");
+        continue; // Diesen Pin überspringen
+      } else {
+        Serial.print("Pin ");
+        Serial.print(pinNum);
+        Serial.print(" erfolgreich auf ");
+        Serial.println(newState == 1 ? "HIGH" : "LOW");
       }
     }
     // Nach der Verarbeitung aller Befehle den aktualisierten GPIO-Status an das Frontend senden
@@ -432,19 +425,18 @@ void sendHeartbeat() {
   doc["wifi"] = WiFi.SSID();             // Aktuell verbundenes WLAN-SSID
   doc["rssi"] = WiFi.RSSI();             // Signalstärke des verbundenen WLANs
   doc["uptime"] = millis() / 1000;       // Uptime in Sekunden
-  doc["deviceName"] = currentDeviceName; // Name des Geräts
+  doc["deviceName"] = device.deviceName; // Name des Geräts
 
   // Erstellt das GPIO-States-Array im neuen Format
   JsonArray gpio_states_json = doc.createNestedArray("gpioStates");
 
   // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
-  for (int i = 0; i < NUM_PINS; i++) {
+  for (const auto& [pinKey, pin] : device.pins) {
     JsonObject pinObj = gpio_states_json.createNestedObject();
-    pinObj["pinNumber"] = control_pins[i];
-    pinObj["state"] = gpio_states[i];
-    // Metadaten (mode / label)
-    pinObj["mode"] = gpioConfigs[i].mode;
-    pinObj["label"] = gpioConfigs[i].label;
+    pinObj["pinNumber"] = pin.pinNumber;
+    pinObj["state"] = pin.value;
+    pinObj["mode"] = pin.currentMode;
+    pinObj["label"] = pin.label;
   }
 
   String payload;
@@ -556,12 +548,12 @@ void reportGpioStates() {
   JsonArray gpio_states_json = root.createNestedArray("gpioStates");
 
   // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
-  for (int i = 0; i < NUM_PINS; i++) {
+  for (const auto& [pinKey, pin] : device.pins) {
     JsonObject pinObj = gpio_states_json.createNestedObject();
-    pinObj["pinNumber"] = control_pins[i];
-    pinObj["state"] = gpio_states[i];
-    pinObj["mode"] = gpioConfigs[i].mode;
-    pinObj["label"] = gpioConfigs[i].label;
+    pinObj["pinNumber"] = pin.pinNumber;
+    pinObj["state"] = pin.value;
+    pinObj["mode"] = pin.currentMode;
+    pinObj["label"] = pin.label;
   }
 
   String payload;
@@ -594,12 +586,9 @@ void setup() {
     // Versuche, die gespeicherten Einstellungen zu laden
     if (!loadSettings()) {
       Serial.println("Keine gespeicherten Einstellungen gefunden, verwende Standards.");
+      device.setDevicePinsToStandard(); // Setzt die Pins auf die Standardwerte basierend auf dem Board-Typ
     }
   }
-
-  // Aktualisiere die lokalen Variablen mit geladenen Einstellungen
-  wifiScanInterval = deviceSettings.wifiScanInterval;
-  currentDeviceName = deviceSettings.deviceName;
 
   // Debug-Ausgabe der geladenen Settings
   printSettings();
@@ -614,39 +603,7 @@ void setup() {
   Serial.print("MQTT Password: ");
   Serial.println(mqtt_pass);
   Serial.print("Base Device Name: ");
-  Serial.println(BASE_DEVICE_NAME);
-
-  // GPIO Pins als OUTPUT konfigurieren und initialen Zustand auf LOW setzen
-  for (int i = 0; i < NUM_PINS; i++) {
-    pinMode(control_pins[i], OUTPUT);
-    digitalWrite(control_pins[i], LOW);
-    gpio_states[i] = LOW; // Internen Zustand initialisieren
-  }
-
-  // Initialisiere GPIO-Metadaten: falls geladen, ordne sie passend zu control_pins
-  {
-    GPIOConfig temp[NUM_PINS];
-    for (int i = 0; i < NUM_PINS; i++) {
-      temp[i].pinNumber = control_pins[i];
-      temp[i].mode = "none";
-      temp[i].label = "";
-    }
-    // Übernehme geladene configs (falls vorhanden) basierend auf pinNumber
-    for (int j = 0; j < NUM_PINS; j++) {
-      int loadedPin = gpioConfigs[j].pinNumber;
-      if (loadedPin < 0)
-        continue;
-      for (int k = 0; k < NUM_PINS; k++) {
-        if (control_pins[k] == loadedPin) {
-          temp[k] = gpioConfigs[j];
-          break;
-        }
-      }
-    }
-    // Kopiere zurück
-    for (int i = 0; i < NUM_PINS; i++)
-      gpioConfigs[i] = temp[i];
-  }
+  Serial.println(device.deviceName.c_str());
 
   // --- Generiere die eindeutige Device ID ---
   // Initialisiere WiFi im STA-Modus, um die MAC-Adresse auslesen zu können
@@ -753,7 +710,7 @@ void loop() {
   // Periodischer WiFi-Scan starten
   // Startet einen neuen WiFi-Scan, wenn die Zeit seit dem letzten Scan abgelaufen ist
   // und kein anderer Scan gerade läuft.
-  if (!wifiScanning && currentMillis - lastWifiScanTime >= wifiScanInterval) {
+  if (!wifiScanning && currentMillis - lastWifiScanTime >= device.wifiScanInterval) {
     performWifiScan();
   }
 

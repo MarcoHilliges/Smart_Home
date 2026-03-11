@@ -70,6 +70,23 @@ struct Pin {
     return false;
   }
 
+  PinMode convertStringToPinMode(const std::string& modeStr) {
+    if (modeStr == "None")
+      return PinMode::None;
+    else if (modeStr == "Digital_Input")
+      return PinMode::Digital_Input;
+    else if (modeStr == "Digital_Output")
+      return PinMode::Digital_Output;
+    else if (modeStr == "PWM")
+      return PinMode::PWM;
+    else if (modeStr == "Analog_Input")
+      return PinMode::Analog_Input;
+    else if (modeStr == "Analog_Output")
+      return PinMode::Analog_Output;
+    else
+      return PinMode::None; // Standardwert bei unbekanntem Modus
+  }
+
   bool setMode(PinMode mode) {
     const auto it = std::find(modes.begin(), modes.end(), mode);
     if (it == modes.end()) {
@@ -84,13 +101,21 @@ struct Pin {
     } else if (mode == PinMode::Digital_Input) {
       value = false; // Standardwert für digitale Eingänge
     } else if (mode == PinMode::Digital_Output) {
-      value = DigitalOutputState::LOW_STATE; // Standardwert für digitale Ausgänge
+      value = DigitalOutputState::LOW_STATE;   // Standardwert für digitale Ausgänge
       digitalWrite(std::stoi(pinNumber), LOW); // Setze physischen Pin auf LOW
     } else if (mode == PinMode::PWM || mode == PinMode::Analog_Input) {
       value = 0; // Standardwert für analoge Pins
     } else if (mode == PinMode::Analog_Output) {
       value = 0.0f; // Standardwert für analoge Ausgänge
     }
+    return true;
+  }
+
+  bool setLabel(const std::string& newLabel) {
+    if (label == newLabel) {
+      return false;
+    }
+    label = newLabel;
     return true;
   }
 };
@@ -100,6 +125,29 @@ struct Device {
   std::string deviceName;
   std::uint32_t wifiScanInterval;
   std::map<int, Pin> pins;
+
+  bool setDeviceName(const std::string& newName) {
+    if (deviceName == newName) {
+      return false;
+    }
+    deviceName = newName;
+    return true;
+  }
+
+  bool setWifiScanInterval(std::uint32_t newInterval) {
+    if (wifiScanInterval == newInterval) {
+      return false;
+    }
+    wifiScanInterval = newInterval;
+    return true;
+  }
+
+  bool setDevicePinsToStandard() {
+    for (auto& [pinNum, pin] : pins) {
+      pin.setMode(PinMode::None);
+    }
+    return true;
+  }
 };
 
 extern const Device ESP32_Custom;
