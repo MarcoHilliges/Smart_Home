@@ -1,4 +1,4 @@
-#include "board_definitions/esp_32.h"
+#include "esp_32.h"
 #include "littlefs_settings.h" // LittleFS-Verwaltung für Geräteeinstellungen
 #include "secrets.h"      // Enthält vertrauliche WLAN- und MQTT-Zugangsdaten. MUSS in .gitignore!
 #include <ArduinoJson.h>  // Bibliothek für effizientes JSON-Parsing und -Generierung
@@ -55,6 +55,21 @@ long lastWifiScanTime = 0; // Zeitpunkt des letzten WiFi-Scans
 WiFiClient espClient;           // Der TCP-Client, der die WLAN-Verbindung verwaltet
 PubSubClient client(espClient); // Der MQTT-Client, der über espClient kommuniziert
 
+static void writePinValueToJson(JsonObject& pinObj, const Pin& pin) {
+  if (std::holds_alternative<bool>(pin.value)) {
+    pinObj["state"] = std::get<bool>(pin.value);
+  } else if (std::holds_alternative<int>(pin.value)) {
+    pinObj["state"] = std::get<int>(pin.value);
+  } else if (std::holds_alternative<float>(pin.value)) {
+    pinObj["state"] = std::get<float>(pin.value);
+  } else if (std::holds_alternative<DigitalOutputState>(pin.value)) {
+    pinObj["state"] =
+        std::get<DigitalOutputState>(pin.value) == DigitalOutputState::HIGH_STATE ? "HIGH" : "LOW";
+  } else {
+    pinObj["state"] = nullptr;
+  }
+}
+
 // ----------------------------------------
 // Funktion: sendDeviceSettings
 // Sendet die aktuellen Geräteeinstellungen als JSON an topic_settings_pub.
@@ -67,11 +82,11 @@ void sendDeviceSettings() {
 
   // GPIO Metadaten anhängen
   JsonArray gpioArray = doc.createNestedArray("gpioConfigs");
-  for (int i = 0; i < device.pins.size(); i++) {
+  for (const auto& [pinKey, pin] : device.pins) {
     JsonObject g = gpioArray.createNestedObject();
-    g["pinNumber"] = device.pins[i].pinNumber;
-    g["mode"] = device.pins[i].currentMode;
-    g["label"] = device.pins[i].label;
+    g["pinNumber"] = pin.pinNumber;
+    g["mode"] = pinModeToString(pin.currentMode);
+    g["label"] = pin.label;
   }
 
   String payload;
@@ -211,7 +226,7 @@ Device getDevicePreset() {
   return ESP32_Custom;
 }
 
-Device device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
+Device device; // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
 
 // #define PIN_2 2
 // #define PIN_4 4
@@ -434,8 +449,8 @@ void sendHeartbeat() {
   for (const auto& [pinKey, pin] : device.pins) {
     JsonObject pinObj = gpio_states_json.createNestedObject();
     pinObj["pinNumber"] = pin.pinNumber;
-    pinObj["state"] = pin.value;
-    pinObj["mode"] = pin.currentMode;
+    writePinValueToJson(pinObj, pin);
+    pinObj["mode"] = pinModeToString(pin.currentMode);
     pinObj["label"] = pin.label;
   }
 
@@ -551,8 +566,8 @@ void reportGpioStates() {
   for (const auto& [pinKey, pin] : device.pins) {
     JsonObject pinObj = gpio_states_json.createNestedObject();
     pinObj["pinNumber"] = pin.pinNumber;
-    pinObj["state"] = pin.value;
-    pinObj["mode"] = pin.currentMode;
+    writePinValueToJson(pinObj, pin);
+    pinObj["mode"] = pinModeToString(pin.currentMode);
     pinObj["label"] = pin.label;
   }
 
@@ -577,16 +592,22 @@ void reportGpioStates() {
 void setup() {
   Serial.begin(115200); // Serielle Ausgabe starten für Debugging
   Serial.println("Setup starting...");
-
+  Serial.print("Board Type aus secrets: ");
+  Serial.println(BOARD_TYPE);
+  device = getDevicePreset(); // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
+  Serial.print("Board Type aus Device: ");
+  Serial.println(device.type.c_str());
   // ========== LittleFS Initialisierung ==========
   if (!initLittleFS()) {
     Serial.println("KRITISCHER FEHLER: LittleFS konnte nicht initialisiert werden!");
     // Wir fahren trotzdem fort, verwenden aber Standard-Einstellungen
   } else {
+    // deleteSettings();
     // Versuche, die gespeicherten Einstellungen zu laden
     if (!loadSettings()) {
       Serial.println("Keine gespeicherten Einstellungen gefunden, verwende Standards.");
-      device.setDevicePinsToStandard(); // Setzt die Pins auf die Standardwerte basierend auf dem Board-Typ
+      device.setDevicePinsToStandard(); // Setzt die Pins auf die Standardwerte basierend auf dem
+                                        // Board-Typ
     }
   }
 

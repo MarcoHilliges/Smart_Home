@@ -18,6 +18,42 @@ enum class PinMode {
   None
 };
 
+inline const char* pinModeToString(PinMode mode) {
+  switch (mode) {
+    case PinMode::Digital_Input:
+      return "Digital_Input";
+    case PinMode::Digital_Output:
+      return "Digital_Output";
+    case PinMode::PWM:
+      return "PWM";
+    case PinMode::Analog_Input:
+      return "Analog_Input";
+    case PinMode::Analog_Output:
+      return "Analog_Output";
+    case PinMode::Touch_Sensor:
+      return "Touch_Sensor";
+    case PinMode::None:
+    default:
+      return "None";
+  }
+}
+
+inline PinMode pinModeFromString(const std::string& modeStr) {
+  if (modeStr == "Digital_Input")
+    return PinMode::Digital_Input;
+  if (modeStr == "Digital_Output")
+    return PinMode::Digital_Output;
+  if (modeStr == "PWM")
+    return PinMode::PWM;
+  if (modeStr == "Analog_Input")
+    return PinMode::Analog_Input;
+  if (modeStr == "Analog_Output")
+    return PinMode::Analog_Output;
+  if (modeStr == "Touch_Sensor")
+    return PinMode::Touch_Sensor;
+  return PinMode::None;
+}
+
 enum class DigitalOutputState { LOW_STATE, HIGH_STATE };
 
 using PinValue = std::variant<bool, // Digital_Input/Output: true/false
@@ -71,20 +107,7 @@ struct Pin {
   }
 
   PinMode convertStringToPinMode(const std::string& modeStr) {
-    if (modeStr == "None")
-      return PinMode::None;
-    else if (modeStr == "Digital_Input")
-      return PinMode::Digital_Input;
-    else if (modeStr == "Digital_Output")
-      return PinMode::Digital_Output;
-    else if (modeStr == "PWM")
-      return PinMode::PWM;
-    else if (modeStr == "Analog_Input")
-      return PinMode::Analog_Input;
-    else if (modeStr == "Analog_Output")
-      return PinMode::Analog_Output;
-    else
-      return PinMode::None; // Standardwert bei unbekanntem Modus
+    return pinModeFromString(modeStr);
   }
 
   bool setMode(PinMode mode) {

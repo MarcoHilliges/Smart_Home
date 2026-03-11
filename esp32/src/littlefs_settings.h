@@ -71,8 +71,20 @@ bool saveSettings() {
     p["id"] = pin.id;
     p["pinNumber"] = pin.pinNumber;
     p["label"] = pin.label;
-    p["currentMode"] = pin.currentMode;
-    p["value"] = pin.value;
+    p["currentMode"] = pinModeToString(pin.currentMode);
+
+    if (std::holds_alternative<bool>(pin.value)) {
+      p["value"] = std::get<bool>(pin.value);
+    } else if (std::holds_alternative<int>(pin.value)) {
+      p["value"] = std::get<int>(pin.value);
+    } else if (std::holds_alternative<float>(pin.value)) {
+      p["value"] = std::get<float>(pin.value);
+    } else if (std::holds_alternative<DigitalOutputState>(pin.value)) {
+      p["value"] =
+          std::get<DigitalOutputState>(pin.value) == DigitalOutputState::HIGH_STATE ? 1 : 0;
+    } else {
+      p["value"] = nullptr;
+    }
   }
 
   // Öffne die Datei zum Schreiben (überschreibe, falls sie existiert)
@@ -151,23 +163,48 @@ bool loadSettings() {
     JsonObject ga = doc["gpioConfigs"].as<JsonObject>();
     for (JsonPair kvp : ga) {
       int pinNum = atoi(kvp.key().c_str());
-      if (device.pins.find(pinNum) != device.pins.end()) {
+      auto it = device.pins.find(pinNum);
+      if (it != device.pins.end()) {
         JsonObject g = kvp.value().as<JsonObject>();
+        Pin& pin = it->second;
+
         if (g.containsKey("id"))
-          device.pins[pinNum].id = g["id"].as<int>();
+          pin.id = g["id"].as<const char*>();
         if (g.containsKey("pinNumber"))
-          device.pins[pinNum].pinNumber = g["pinNumber"].as<int>();
+          pin.pinNumber = g["pinNumber"].as<const char*>();
         if (g.containsKey("label"))
-          device.pins[pinNum].label = g["label"].as<const char*>();
-        if (g.containsKey("currentMode"))
-          device.pins[pinNum].setMode(g["currentMode"] | PinMode::None);
+          pin.label = g["label"].as<const char*>();
+
+        if (g.containsKey("currentMode")) {
+          std::string modeText;
+          if (g["currentMode"].is<const char*>()) {
+            modeText = g["currentMode"].as<const char*>();
+          } else if (g["currentMode"].is<int>()) {
+            modeText = pinModeToString(static_cast<PinMode>(g["currentMode"].as<int>()));
+          }
+          pin.setMode(pinModeFromString(modeText));
+        }
+
         if (g.containsKey("value")) {
-          device.pins[pinNum].value = g["value"].as<int>();
-          if (device.pins[pinNum].currentMode == PinMode::Digital_Output) {
-            device.pins[pinNum].setValue(g["value"].as<int>() ==
-                                                 static_cast<int>(DigitalOutputState::HIGH_STATE)
-                                             ? DigitalOutputState::HIGH_STATE
-                                             : DigitalOutputState::LOW_STATE);
+          switch (pin.currentMode) {
+            case PinMode::Digital_Output:
+              pin.setValue(g["value"].as<int>() > 0 ? DigitalOutputState::HIGH_STATE
+                                                    : DigitalOutputState::LOW_STATE);
+              break;
+            case PinMode::Digital_Input:
+              pin.setValue(g["value"].as<bool>());
+              break;
+            case PinMode::Analog_Output:
+              pin.setValue(g["value"].as<float>());
+              break;
+            case PinMode::PWM:
+            case PinMode::Analog_Input:
+              pin.setValue(g["value"].as<int>());
+              break;
+            case PinMode::Touch_Sensor:
+            case PinMode::None:
+            default:
+              break;
           }
         }
       }
