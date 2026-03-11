@@ -38,6 +38,7 @@ String topic_settings_get_sub;   // Topic zum Abonnieren von Anfragen für die E
 String topic_settings_pub;       // Topic zum Veröffentlichen der Einstellungen
 String topic_settings_set_sub;   // Topic zum Abonnieren von Befehlen zur Einstellung der
                                  // Geräteeinstellungen
+String topic_settings_reset_sub; // Topic zum Abonnieren von Befehlen zum Zurücksetzen der Einstellungen
 
 // Globale Variablen für den nicht-blockierenden Scan
 bool wifiScanning = false; // Flag, ob ein WiFi-Scan läuft
@@ -345,6 +346,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
     updateDeviceSettings(payloadString); // Funktion zum Aktualisieren der Einstellungen
   }
   // Für alle anderen Topics, die abonniert sind, aber nicht explizit behandelt werden
+  else if (String(topic) == topic_settings_reset_sub) {
+    Serial.println("Befehl empfangen auf /settings/reset Topic. Lösche gespeicherte Einstellungen...");
+    if (deleteSettings()) {
+      Serial.println("Gespeicherte Einstellungen gelöscht. Gerät wird mit Standard-Einstellungen neu gestartet.");
+      ESP.restart(); // Neustart des ESP32, damit die Standard-Einstellungen geladen werden
+    } else {
+      Serial.println("Fehler beim Löschen der gespeicherten Einstellungen!");
+    }
+  }
   else {
     Serial.print("Unbehandeltes Topic: ");
     Serial.println(topic);
@@ -413,6 +423,7 @@ void reconnect_mqtt() {
       client.subscribe(topic_gpio_get_sub.c_str()); // Abonnieren für GPIO-Status-Anfragen
       client.subscribe(topic_settings_get_sub.c_str()); // Abonnieren für Settings-Anfragen
       client.subscribe(topic_settings_set_sub.c_str()); // Abonnieren für Setting-Änderungsbefehle
+      client.subscribe(topic_settings_reset_sub.c_str()); // Abonnieren für Settings-Reset-Befehle
 
       // Initialen GPIO-Status senden (für Dashboard-Initialisierung)
       reportGpioStates();
@@ -659,6 +670,7 @@ void setup() {
   topic_settings_get_sub = "esp32/" + deviceId + "/settings/get";
   topic_settings_pub = "esp32/" + deviceId + "/settings";
   topic_settings_set_sub = "esp32/" + deviceId + "/settings/set";
+  topic_settings_reset_sub = "esp32/" + deviceId + "/settings/reset";
 
   // Debug-Ausgabe der generierten Topics zur Überprüfung
   Serial.print("MQTT Topic Heartbeat: ");
@@ -681,6 +693,8 @@ void setup() {
   Serial.println(topic_settings_pub);
   Serial.print("MQTT Topic Settings Set (Sub): ");
   Serial.println(topic_settings_set_sub);
+  Serial.print("MQTT Topic Settings Reset (Sub): ");
+  Serial.println(topic_settings_reset_sub);
   // --- Ende Topics Initialisierung ---
 
   setup_wifi(); // Stellt die WLAN-Verbindung her
