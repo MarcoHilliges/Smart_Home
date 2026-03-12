@@ -29,7 +29,8 @@ const isUpdatingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>([]);
 
 const valuesAreValid = computed(() => {
-  return !gpioPinStates.value.find((gpio) => gpio.state === null);
+  return true;
+  // return !gpioPinStates.value.find((gpio) => gpio.state === null);
 });
 const valuesAreChanged = computed(() => {
   return (
@@ -157,6 +158,8 @@ onBeforeUnmount(() => {
             {{ t("device.gpioMode") }}
           </label>
 
+          {{ gpio.mode }} - {{ JSON.stringify(gpio) }}
+
           <select
             v-model="gpio.mode"
             name="modes"
@@ -228,6 +231,8 @@ onBeforeUnmount(() => {
       </li>
     </ul>
     <div class="mt-auto flex justify-end pb-6 mx-12">
+      {{ valuesAreChanged }}
+      {{ valuesAreValid }}
       <button
         class="px-12 py-6 border rounded"
         :class="

@@ -12,17 +12,6 @@
 #define SETTINGS_FILE "/settings.json"
 #define FORMAT_LITTLEFS_IF_FAILED true
 
-// Struktur für GPIO-Metadaten (Label / Mode)
-// struct GPIOConfig {
-//   int pinNumber = -1;
-//   String mode = "none"; // "lamp" | "pump" | "none"
-//   String label = "";
-// };
-
-// Externe Referenzen: werden in main.cpp definiert
-// extern const int NUM_PINS;
-// extern GPIOConfig gpioConfigs[];
-
 extern Device device; // Aktuelles Device mit Pin-Definitionen
 
 // ----------------------------------------

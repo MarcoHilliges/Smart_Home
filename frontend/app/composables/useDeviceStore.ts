@@ -145,13 +145,17 @@ export const useDeviceStore = () => {
         (g) => g.pinNumber === gpioState.pinNumber,
       );
       if (gpio) {
-        gpio.state = gpioState.state;
+        for (const key in gpioState) {
+          if (key === "label") gpio.label = gpioState.label;
+          else if (key === "mode") gpio.mode = gpioState.mode;
+          else if (key === "state") gpio.state = gpioState.state;
+        }
       } else {
         device.gpios.push({
           pinNumber: gpioState.pinNumber,
           state: gpioState.state,
-          mode: "none",
-          label: "",
+          mode: gpioState.mode || "none",
+          label: gpioState.label || "",
         });
       }
     });

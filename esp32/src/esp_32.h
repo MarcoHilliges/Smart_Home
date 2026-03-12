@@ -54,6 +54,119 @@ inline PinMode pinModeFromString(const std::string& modeStr) {
   return PinMode::None;
 }
 
+enum class GPIOActorRole {
+  Light,    // Digital
+  Pump,     // Digital
+  Relay,    // Digital
+  Buzzer,   // Digital
+  Heater,   // Digital
+  Fan,      // PWM
+  LedStrip, // PWM
+  Valve,    // PWM
+};
+
+inline const char* gpioActorRoleToString(GPIOActorRole role) {
+  switch (role) {
+    case GPIOActorRole::Light:
+      return "Light";
+    case GPIOActorRole::Pump:
+      return "Pump";
+    case GPIOActorRole::Fan:
+      return "Fan";
+    case GPIOActorRole::Relay:
+      return "Relay";
+    case GPIOActorRole::Buzzer:
+      return "Buzzer";
+    case GPIOActorRole::LedStrip:
+      return "LedStrip";
+    case GPIOActorRole::Valve:
+      return "Valve";
+    case GPIOActorRole::Heater:
+      return "Heater";
+    default:
+      return "Light";
+  }
+}
+
+inline GPIOActorRole gpioActorRoleFromString(const std::string& roleStr) {
+  if (roleStr == "Light")
+    return GPIOActorRole::Light;
+  if (roleStr == "Pump")
+    return GPIOActorRole::Pump;
+  if (roleStr == "Fan")
+    return GPIOActorRole::Fan;
+  if (roleStr == "Relay")
+    return GPIOActorRole::Relay;
+  if (roleStr == "Buzzer")
+    return GPIOActorRole::Buzzer;
+  if (roleStr == "LedStrip")
+    return GPIOActorRole::LedStrip;
+  if (roleStr == "Valve")
+    return GPIOActorRole::Valve;
+  if (roleStr == "Heater")
+    return GPIOActorRole::Heater;
+  return GPIOActorRole::Light; // Standardwert
+}
+
+enum class GPIOSensorRole {
+  Temperature,  // Analog
+  Humidity,     // Analog
+  LightSensor,  // Analog
+  SoilMoisture, // Analog
+  WaterLevel,   // Analog
+  Motion,       // Digital
+  DoorContact,  // Digital
+  Switch,       // Digital
+  Touch         // Touch
+};
+
+inline const char* gpioSensorRoleToString(GPIOSensorRole role) {
+  switch (role) {
+    case GPIOSensorRole::Temperature:
+      return "Temperature";
+    case GPIOSensorRole::Humidity:
+      return "Humidity";
+    case GPIOSensorRole::LightSensor:
+      return "LightSensor";
+    case GPIOSensorRole::SoilMoisture:
+      return "SoilMoisture";
+    case GPIOSensorRole::WaterLevel:
+      return "WaterLevel";
+    case GPIOSensorRole::Motion:
+      return "Motion";
+    case GPIOSensorRole::DoorContact:
+      return "DoorContact";
+    case GPIOSensorRole::Touch:
+      return "Touch";
+    case GPIOSensorRole::Switch:
+      return "Switch";
+    default:
+      return "Switch";
+  }
+}
+
+inline GPIOSensorRole gpioSensorRoleFromString(const std::string& roleStr) {
+  if (roleStr == "Temperature")
+    return GPIOSensorRole::Temperature;
+  if (roleStr == "Humidity")
+    return GPIOSensorRole::Humidity;
+  if (roleStr == "LightSensor")
+    return GPIOSensorRole::LightSensor;
+  if (roleStr == "SoilMoisture")
+    return GPIOSensorRole::SoilMoisture;
+  if (roleStr == "WaterLevel")
+    return GPIOSensorRole::WaterLevel;
+  if (roleStr == "Motion")
+    return GPIOSensorRole::Motion;
+  if (roleStr == "DoorContact")
+    return GPIOSensorRole::DoorContact;
+  if (roleStr == "Touch")
+    return GPIOSensorRole::Touch;
+  if (roleStr == "Switch")
+    return GPIOSensorRole::Switch;
+  return GPIOSensorRole::Switch; // Standardwert
+}
+
 enum class DigitalOutputState { LOW_STATE, HIGH_STATE };
 
 using PinValue = std::variant<bool, // Digital_Input/Output: true/false
@@ -66,10 +179,12 @@ using PinValue = std::variant<bool, // Digital_Input/Output: true/false
 struct Pin {
   std::string id;
   std::string pinNumber; // Physische Pin-Nummer auf dem Board
-  std::string label;     // Optional, kann leer sein
+  std::string label;
   std::vector<PinMode> modes;
+  std::vector<std::variant<GPIOActorRole, GPIOSensorRole>> roles;
   std::vector<std::string> specialFunctions; // optional, kann leer sein
   PinMode currentMode;
+  std::variant<GPIOActorRole, GPIOSensorRole, std::monostate> currentRole;
   PinValue value;
 
   // Typsichere Setter

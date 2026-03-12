@@ -175,6 +175,11 @@ void updateDeviceSettings(String payloadString) {
           Serial.print(" Mode aktualisiert zu: ");
           Serial.println(newMode.c_str());
           pinChanged = true;
+        } else {
+          Serial.print("GPIO Pin ");
+          Serial.print(pinNum);
+          Serial.print(" Mode unverändert oder ungültig: ");
+          Serial.println(newMode.c_str());
         }
       }
       if (newGpioValues.containsKey("label")) {

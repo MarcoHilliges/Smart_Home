@@ -289,7 +289,7 @@ const gpioGroups = computed(() => {
     group.gpios.push(gpio);
   });
 
-  return groups.filter((group) => group.mode !== "none");
+  return groups.filter((group) => group.mode.toLowerCase() !== "none");
 });
 
 function changeTab(tab: ContentTab) {
@@ -303,10 +303,12 @@ function changeTab(tab: ContentTab) {
     <div
       class="w-full flex flex-grow p-24 justify-center overflow-auto custom-scrollbar"
     >
+    
       <div v-if="activeTab === 'overview'">
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">
             <template v-for="gpio in group.gpios" :key="gpio.pinNumber">
+              <pre>{{ gpio }}</pre>
               <GPIOActorUniversal
                 :gpio="gpio"
                 class="m-8"
