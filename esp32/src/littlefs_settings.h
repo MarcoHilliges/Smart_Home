@@ -60,7 +60,7 @@ bool saveSettings() {
     p["id"] = pin.id;
     p["pinNumber"] = pin.pinNumber;
     p["label"] = pin.label;
-    p["currentMode"] = pinModeToString(pin.currentMode);
+    p["currentRole"] = gpioRoleToString(pin.currentRole);
 
     if (std::holds_alternative<bool>(pin.value)) {
       p["value"] = std::get<bool>(pin.value);
@@ -164,14 +164,8 @@ bool loadSettings() {
         if (g.containsKey("label"))
           pin.label = g["label"].as<const char*>();
 
-        if (g.containsKey("currentMode")) {
-          std::string modeText;
-          if (g["currentMode"].is<const char*>()) {
-            modeText = g["currentMode"].as<const char*>();
-          } else if (g["currentMode"].is<int>()) {
-            modeText = pinModeToString(static_cast<PinMode>(g["currentMode"].as<int>()));
-          }
-          pin.setMode(pinModeFromString(modeText));
+        if (g.containsKey("currentRole") && g["currentRole"].is<const char*>()) {
+          pin.setRole(gpioRoleFromString(g["currentRole"].as<const char*>()));
         }
 
         if (g.containsKey("value")) {

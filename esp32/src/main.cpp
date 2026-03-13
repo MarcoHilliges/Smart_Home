@@ -87,6 +87,7 @@ void sendDeviceSettings() {
     JsonObject g = gpioArray.createNestedObject();
     g["pinNumber"] = pin.pinNumber;
     g["mode"] = pinModeToString(pin.currentMode);
+    g["role"] = gpioRoleToString(pin.currentRole);
     g["label"] = pin.label;
   }
 
@@ -167,7 +168,7 @@ void updateDeviceSettings(String payloadString) {
 
       if (newGpioValues.containsKey("mode")) {
         std::string newMode = newGpioValues["mode"] | "None";
-        PinMode mode = device.pins[pinNum].convertStringToPinMode(newMode);
+        PinMode mode = pinModeFromString(newMode);
         bool isChanged = device.pins[pinNum].setMode(mode);
         if (isChanged) {
           Serial.print("GPIO Pin ");
@@ -182,6 +183,25 @@ void updateDeviceSettings(String payloadString) {
           Serial.println(newMode.c_str());
         }
       }
+
+      if (newGpioValues.containsKey("role")) {
+        std::string newRole = newGpioValues["role"] | "None";
+        GPIORole role = gpioRoleFromString(newRole);
+        bool isChanged = device.pins[pinNum].setRole(role);
+        if (isChanged) {
+          Serial.print("GPIO Pin ");
+          Serial.print(pinNum);
+          Serial.print(" Rolle aktualisiert zu: ");
+          Serial.println(newRole.c_str());
+          pinChanged = true;
+        } else {
+          Serial.print("GPIO Pin ");
+          Serial.print(pinNum);
+          Serial.print(" Rolle unverändert oder ungültig: ");
+          Serial.println(newRole.c_str());
+        }
+      }
+
       if (newGpioValues.containsKey("label")) {
         std::string newLabel = newGpioValues["label"] | "";
         if (newLabel != device.pins[pinNum].label) {
@@ -222,8 +242,6 @@ void updateDeviceSettings(String payloadString) {
 // GPIO-Steuerung und Definitionen
 // Definiert die GPIO-Pins, die im Projekt verwendet und gesteuert/überwacht werden
 // ----------------------------------------
-// Pins auf dem ESP32-DevKitC V4:
-// Vermeide GPIOs 0, 1, 3, 5, 6-11 (Flash-Pins), 12 (Boot-Pin), 14 (Boot-Pin), 15 (Boot-Pin)
 
 Device getDevicePreset() {
   if (String(BOARD_TYPE) == "ESP32_Dev_Kit_C_V4") {
@@ -233,21 +251,6 @@ Device getDevicePreset() {
 }
 
 Device device; // Initialisiere die Pin-Definitionen basierend auf dem Board-Typ
-
-// #define PIN_2 2
-// #define PIN_4 4
-// #define PIN_16 16
-// #define PIN_17 17
-
-// Array speichert die aktuellen logischen Zustände (HIGH/LOW) der steuerbaren Pins
-// int gpio_states[4] = {LOW, LOW, LOW, LOW};
-// Array der tatsächlich verwendeten GPIO-Nummern. Reihenfolge muss gpio_states entsprechen.
-// int control_pins[] = {PIN_2, PIN_4, PIN_16, PIN_17};
-// Anzahl der definierten Pins
-// const int NUM_PINS = sizeof(control_pins) / sizeof(control_pins[0]);
-
-// GPIO Metadaten (Label/Group) - wird in littlefs_settings.h persistiert
-// GPIOConfig gpioConfigs[NUM_PINS];
 
 // ----------------------------------------
 // Funktion: MQTT Callback
@@ -467,6 +470,7 @@ void sendHeartbeat() {
     pinObj["pinNumber"] = pin.pinNumber;
     writePinValueToJson(pinObj, pin);
     pinObj["mode"] = pinModeToString(pin.currentMode);
+    pinObj["role"] = gpioRoleToString(pin.currentRole);
     pinObj["label"] = pin.label;
   }
 
@@ -584,6 +588,7 @@ void reportGpioStates() {
     pinObj["pinNumber"] = pin.pinNumber;
     writePinValueToJson(pinObj, pin);
     pinObj["mode"] = pinModeToString(pin.currentMode);
+    pinObj["role"] = gpioRoleToString(pin.currentRole);
     pinObj["label"] = pin.label;
   }
 
