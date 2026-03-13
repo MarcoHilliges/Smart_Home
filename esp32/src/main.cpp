@@ -608,31 +608,60 @@ void processWifiScanResults(int n) {
 // Sendet den aktuellen Status aller konfigurierten GPIO-Pins als JSON.
 // ----------------------------------------
 void reportGpioStates() {
-  // Dynamisches JSON-Dokument für GPIO-Zustände (256 Bytes sind ausreichend)
-  DynamicJsonDocument doc(256);
-  JsonObject root = doc.to<JsonObject>(); // Erstellt das Wurzelobjekt
-  JsonArray gpio_states_json = root.createNestedArray("gpioStates");
-
-  // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
-  for (const auto& [pinKey, pin] : device.pins) {
-    JsonObject pinObj = gpio_states_json.createNestedObject();
-    pinObj["pinNumber"] = pin.pinNumber;
-    writePinValueToJson(pinObj, pin);
-    pinObj["mode"] = pinModeToString(pin.currentMode);
-    pinObj["role"] = gpioRoleToString(pin.currentRole);
-    pinObj["label"] = pin.label;
+  if (!client.connected()) {
+    Serial.println("MQTT Client ist NICHT verbunden, GPIO-Zustände nicht gesendet.");
+    return;
   }
 
-  String payload;
-  serializeJson(doc, payload); // Serialisiert das JSON-Dokument in einen String
+  const size_t pinCount = device.pins.size();
+  const size_t chunkCount =
+      pinCount == 0 ? 1 : (pinCount + heartbeatPinsPerChunk - 1) / heartbeatPinsPerChunk;
 
-  Serial.print("Sende GPIO-Zustände: ");
-  Serial.println(payload);
+  for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {
+    DynamicJsonDocument doc(1024);
+    JsonObject root = doc.to<JsonObject>();
+    root["numberOfPins"] = pinCount;
+    root["chunkIndex"] = chunkIndex;
+    root["chunkCount"] = chunkCount;
+    JsonArray gpio_states_json = root.createNestedArray("gpioStates");
 
-  if (client.connected()) {
-    client.publish(topic_gpio_state_pub.c_str(), payload.c_str()); // Veröffentlicht die Nachricht
-  } else {
-    Serial.println("MQTT Client ist NICHT verbunden, GPIO-Zustände nicht gesendet.");
+    const size_t chunkStart = chunkIndex * heartbeatPinsPerChunk;
+    const size_t chunkEnd = chunkStart + heartbeatPinsPerChunk;
+
+    size_t currentPinIndex = 0;
+    for (const auto& [pinKey, pin] : device.pins) {
+      if (currentPinIndex >= chunkStart && currentPinIndex < chunkEnd) {
+        JsonObject pinObj = gpio_states_json.createNestedObject();
+        pinObj["pinNumber"] = pin.pinNumber;
+        writePinValueToJson(pinObj, pin);
+        pinObj["mode"] = pinModeToString(pin.currentMode);
+        pinObj["role"] = gpioRoleToString(pin.currentRole);
+        pinObj["label"] = pin.label;
+      }
+      ++currentPinIndex;
+      if (currentPinIndex >= chunkEnd) {
+        break;
+      }
+    }
+
+    String payload;
+    serializeJson(doc, payload);
+
+    Serial.print("Sende GPIO-Zustaende Chunk ");
+    Serial.print(chunkIndex + 1);
+    Serial.print("/");
+    Serial.print(chunkCount);
+    Serial.print(": ");
+    Serial.println(payload);
+
+    const bool publishOk = client.publish(topic_gpio_state_pub.c_str(), payload.c_str());
+    if (!publishOk) {
+      Serial.print("GPIO-Zustaende Publish fehlgeschlagen bei Chunk ");
+      Serial.print(chunkIndex + 1);
+      Serial.print(". MQTT state=");
+      Serial.println(client.state());
+      return;
+    }
   }
 }
 

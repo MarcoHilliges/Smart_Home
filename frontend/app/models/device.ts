@@ -4,43 +4,53 @@ export type ContentTab = "overview" | "wifi" | "gpio" | "settings";
 
 export type DeviceStatus = "online" | "error" | "offline";
 
-export enum GPIOPinState {
-  LOW = 0,
-  HIGH = 1,
-}
-export type GPIOModeActor =
-  | "light"
-  | "pump"
-  | "fan"
-  | "relay"
-  | "buzzer"
-  | "led_strip"
-  | "valve"
-  | "heater";
-export type GPIOModeSensor =
-  | "temperature"
-  | "humidity"
-  | "light_sensor"
-  | "soil_moisture"
-  | "water_level"
-  | "motion"
-  | "door_contact"
-  | "touch";
+export type DigitalState = "HIGH" | "LOW";
 
-export type GPIOMode = GPIOModeActor | GPIOModeSensor | 'none';
+export type PinMode =
+  | "Digital_Input"
+  | "Digital_Output"
+  | "PWM"
+  | "Analog_Input"
+  | "Analog_Output"
+  | "Touch_Sensor"
+  | "None";
+
+export type GPIOActorRole =
+  | "Light" // Digital
+  | "Pump" // Digital
+  | "Relay" // Digital
+  | "Buzzer" // Digital
+  | "Heater" // Digital
+  | "Fan" // PWM
+  | "LedStrip" // PWM
+  | "Valve"; // PWM
+
+export type GPIOSensorRole =
+  | "Temperature" // Analog
+  | "Humidity" // Analog
+  | "LightSensor" // Analog
+  | "SoilMoisture" // Analog
+  | "WaterLevel" // Analog
+  | "Motion" // Digital
+  | "DoorContact" // Digital
+  | "Switch" // Digital
+  | "Touch" // Touch
+  | "None"; // Für abgeschaltete Pins
+
+export type GPIORole = GPIOActorRole | GPIOSensorRole;
 
 export interface GPIOActor {
   pinNumber: GPIOPin;
-  mode?: GPIOModeActor | "none";
-  role?: string;
+  mode?: PinMode;
+  role?: GPIOActorRole;
   label?: string;
-  state: GPIOPinState;
+  state: DigitalState;
 }
 
 export interface GPIOSensor {
   pinNumber: GPIOPin;
-  mode?: GPIOModeSensor | "none";
-  role?: string;
+  mode?: PinMode;
+  role?: GPIOSensorRole;
   label?: string;
   state: number;
 }

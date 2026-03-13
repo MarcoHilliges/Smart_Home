@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import type {
   DeviceStatus,
+  DigitalState,
   GPIO,
-  GPIOMode,
   GPIOPin,
-  GPIOPinState,
 } from "~/models/device";
 
 const emit = defineEmits<{
-  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
+  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: DigitalState }];
   getGpioStates: [];
   setGpioConfigs: [{ deviceId: string; gpioConfigs: Partial<GPIO>[] }];
 }>();
@@ -57,7 +56,7 @@ function stopGettingGpioStates() {
   isUpdatingGpioStates.value = null;
 }
 
-function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
+function setGpioPinState(pin: GPIOPin, value: DigitalState) {
   if (isUpdatingGpioStates.value) return;
   isUpdatingGpioStates.value = pin;
 
@@ -203,27 +202,27 @@ onBeforeUnmount(() => {
                 isUpdatingGpioStates === Number(gpio.pinNumber) &&
                 gpio.state === 0,
             }"
-            @click="setGpioPinState(Number(gpio.pinNumber), 1)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 'HIGH')"
           >
             ON
           </button>
           <button
             class="flex items-center justify-center w-24 h-20 rounded-r-md hover:text-error"
             :class="{
-              'bg-error': gpio.state === 0,
-              'bg-gray-300': gpio.state === 1,
+              'bg-error': gpio.state === 'LOW',
+              'bg-gray-300': gpio.state === 'HIGH',
               'pointer-events-none':
                 isUpdatingGpioStates ||
                 gpio.state === null ||
                 gpio.state === undefined ||
-                gpio.state === 0 ||
+                gpio.state === 'LOW' ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
               'text-error':
                 isUpdatingGpioStates === Number(gpio.pinNumber) &&
-                gpio.state === 1,
+                gpio.state === 'HIGH',
             }"
-            @click="setGpioPinState(Number(gpio.pinNumber), 0)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 'LOW')"
           >
             OFF
           </button>
