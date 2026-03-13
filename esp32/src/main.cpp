@@ -38,7 +38,8 @@ String topic_settings_get_sub;   // Topic zum Abonnieren von Anfragen für die E
 String topic_settings_pub;       // Topic zum Veröffentlichen der Einstellungen
 String topic_settings_set_sub;   // Topic zum Abonnieren von Befehlen zur Einstellung der
                                  // Geräteeinstellungen
-String topic_settings_reset_sub; // Topic zum Abonnieren von Befehlen zum Zurücksetzen der Einstellungen
+String topic_settings_reset_sub; // Topic zum Abonnieren von Befehlen zum Zurücksetzen der
+                                 // Einstellungen
 
 // Globale Variablen für den nicht-blockierenden Scan
 bool wifiScanning = false; // Flag, ob ein WiFi-Scan läuft
@@ -49,6 +50,7 @@ bool wifiScanning = false; // Flag, ob ein WiFi-Scan läuft
 // ----------------------------------------
 long lastHeartbeatTime = 0;           // Zeitpunkt des letzten Heartbeats
 const long heartbeatInterval = 30000; // Intervall für Heartbeats (30 Sekunden)
+const size_t heartbeatPinsPerChunk = 5;
 
 long lastWifiScanTime = 0; // Zeitpunkt des letzten WiFi-Scans
 
@@ -76,7 +78,7 @@ static void writePinValueToJson(JsonObject& pinObj, const Pin& pin) {
 // Sendet die aktuellen Geräteeinstellungen als JSON an topic_settings_pub.
 // ----------------------------------------
 void sendDeviceSettings() {
-  DynamicJsonDocument doc(512); // Ausreichend für alle Einstellungen
+  DynamicJsonDocument doc(1024);
 
   doc["deviceName"] = device.deviceName;             // Aktueller Gerätename
   doc["wifiScanInterval"] = device.wifiScanInterval; // Der aktuell aktive Wert
@@ -86,7 +88,6 @@ void sendDeviceSettings() {
   for (const auto& [pinKey, pin] : device.pins) {
     JsonObject g = gpioArray.createNestedObject();
     g["pinNumber"] = pin.pinNumber;
-    g["mode"] = pinModeToString(pin.currentMode);
     g["role"] = gpioRoleToString(pin.currentRole);
     g["label"] = pin.label;
   }
@@ -355,15 +356,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
   // Für alle anderen Topics, die abonniert sind, aber nicht explizit behandelt werden
   else if (String(topic) == topic_settings_reset_sub) {
-    Serial.println("Befehl empfangen auf /settings/reset Topic. Lösche gespeicherte Einstellungen...");
+    Serial.println(
+        "Befehl empfangen auf /settings/reset Topic. Lösche gespeicherte Einstellungen...");
     if (deleteSettings()) {
-      Serial.println("Gespeicherte Einstellungen gelöscht. Gerät wird mit Standard-Einstellungen neu gestartet.");
+      Serial.println("Gespeicherte Einstellungen gelöscht. Gerät wird mit Standard-Einstellungen "
+                     "neu gestartet.");
       ESP.restart(); // Neustart des ESP32, damit die Standard-Einstellungen geladen werden
     } else {
       Serial.println("Fehler beim Löschen der gespeicherten Einstellungen!");
     }
-  }
-  else {
+  } else {
     Serial.print("Unbehandeltes Topic: ");
     Serial.println(topic);
   }
@@ -429,8 +431,8 @@ void reconnect_mqtt() {
           topic_status_get_all_sub.c_str());        // Abonnieren für Status-Anfragen aller Geräte
       client.subscribe(topic_wifi_get_sub.c_str()); // Abonnieren für WiFi-Scan-Anfragen
       client.subscribe(topic_gpio_get_sub.c_str()); // Abonnieren für GPIO-Status-Anfragen
-      client.subscribe(topic_settings_get_sub.c_str()); // Abonnieren für Settings-Anfragen
-      client.subscribe(topic_settings_set_sub.c_str()); // Abonnieren für Setting-Änderungsbefehle
+      client.subscribe(topic_settings_get_sub.c_str());   // Abonnieren für Settings-Anfragen
+      client.subscribe(topic_settings_set_sub.c_str());   // Abonnieren für Setting-Änderungsbefehle
       client.subscribe(topic_settings_reset_sub.c_str()); // Abonnieren für Settings-Reset-Befehle
 
       // Initialen GPIO-Status senden (für Dashboard-Initialisierung)
@@ -452,40 +454,69 @@ void sendHeartbeat() {
   Serial.println("Sende Heartbeat...");
   lastHeartbeatTime = millis(); // Aktualisiert den Zeitpunkt des letzten Heartbeats
 
-  DynamicJsonDocument doc(
-      512); // ArduinoJson Dokument für den Heartbeat-Payload (512 Bytes für mehr Puffer)
-
-  doc["status"] = "online";              // Status des Geräts
-  doc["wifi"] = WiFi.SSID();             // Aktuell verbundenes WLAN-SSID
-  doc["rssi"] = WiFi.RSSI();             // Signalstärke des verbundenen WLANs
-  doc["uptime"] = millis() / 1000;       // Uptime in Sekunden
-  doc["deviceName"] = device.deviceName; // Name des Geräts
-
-  // Erstellt das GPIO-States-Array im neuen Format
-  JsonArray gpio_states_json = doc.createNestedArray("gpioStates");
-
-  // Fügt den Status jedes Pins als Objekt zum JSON-Array hinzu
-  for (const auto& [pinKey, pin] : device.pins) {
-    JsonObject pinObj = gpio_states_json.createNestedObject();
-    pinObj["pinNumber"] = pin.pinNumber;
-    writePinValueToJson(pinObj, pin);
-    pinObj["mode"] = pinModeToString(pin.currentMode);
-    pinObj["role"] = gpioRoleToString(pin.currentRole);
-    pinObj["label"] = pin.label;
+  if (!client.connected()) {
+    Serial.println("MQTT Client ist NICHT verbunden, Heartbeat nicht gesendet.");
+    return;
   }
 
-  String payload;
-  serializeJson(doc, payload); // Serialisiert das JSON-Dokument in einen String
+  const unsigned long uptimeSeconds = millis() / 1000;
+  const size_t pinCount = device.pins.size();
+  const size_t chunkCount =
+      pinCount == 0 ? 1 : (pinCount + heartbeatPinsPerChunk - 1) / heartbeatPinsPerChunk;
 
-  Serial.print("Heartbeat Payload: ");
-  Serial.println(payload);
+  for (size_t chunkIndex = 0; chunkIndex < chunkCount; ++chunkIndex) {
+    DynamicJsonDocument doc(1024);
 
-  if (client.connected()) {
-    client.publish(topic_status_pub.c_str(),
-                   payload.c_str(),
-                   true); // Veröffentlicht die Nachricht (retained = true)
-  } else {
-    Serial.println("MQTT Client ist NICHT verbunden, Heartbeat nicht gesendet.");
+    doc["status"] = "online";
+    doc["wifi"] = WiFi.SSID();
+    doc["rssi"] = WiFi.RSSI();
+    doc["uptime"] = uptimeSeconds;
+    doc["deviceName"] = device.deviceName;
+    doc["numberOfPins"] = pinCount;
+    doc["chunkIndex"] = chunkIndex;
+    doc["chunkCount"] = chunkCount;
+
+    JsonArray gpio_states_json = doc.createNestedArray("gpioStates");
+    const size_t chunkStart = chunkIndex * heartbeatPinsPerChunk;
+    const size_t chunkEnd = chunkStart + heartbeatPinsPerChunk;
+
+    size_t currentPinIndex = 0;
+    for (const auto& [pinKey, pin] : device.pins) {
+      if (currentPinIndex >= chunkStart && currentPinIndex < chunkEnd) {
+        JsonObject pinObj = gpio_states_json.createNestedObject();
+        pinObj["pinNumber"] = pin.pinNumber;
+        writePinValueToJson(pinObj, pin);
+        pinObj["mode"] = pinModeToString(pin.currentMode);
+        pinObj["role"] = gpioRoleToString(pin.currentRole);
+        pinObj["label"] = pin.label;
+      }
+      ++currentPinIndex;
+      if (currentPinIndex >= chunkEnd) {
+        break;
+      }
+    }
+
+    String payload;
+    serializeJson(doc, payload);
+
+    Serial.print("Heartbeat Chunk ");
+    Serial.print(chunkIndex + 1);
+    Serial.print("/");
+    Serial.print(chunkCount);
+    Serial.print(" Payload: ");
+    Serial.println(payload);
+    Serial.print("Heartbeat Payload-Laenge: ");
+    Serial.println(payload.length());
+
+    const bool retainMessage = chunkCount == 1 || chunkIndex == chunkCount - 1;
+    const bool publishOk = client.publish(topic_status_pub.c_str(), payload.c_str(), retainMessage);
+    if (!publishOk) {
+      Serial.print("Heartbeat Publish fehlgeschlagen bei Chunk ");
+      Serial.print(chunkIndex + 1);
+      Serial.print(". MQTT state=");
+      Serial.println(client.state());
+      return;
+    }
   }
 }
 
@@ -711,7 +742,9 @@ void setup() {
   // MQTT-Client konfigurieren
   client.setServer(mqtt_broker, mqtt_port); // Setzt die Broker-Adresse
   client.setCallback(callback); // Registriert die Callback-Funktion für eingehende Nachrichten
-  client.setBufferSize(2048);   // Erhöht den internen MQTT-Puffer für größere Payloads
+  if (!client.setBufferSize(2048)) {
+    Serial.println("Warnung: MQTT Buffer konnte nicht auf 2048 gesetzt werden.");
+  }
 }
 
 // ----------------------------------------

@@ -263,6 +263,7 @@ struct Pin {
       Serial.println(("Pin: " + pinNumber + " Rolle unveraendert, kein Update noetig.").c_str());
       return false;
     }
+    PinMode targetMode = PinMode::None;
 
     if (std::holds_alternative<GPIOActorRole>(newRole)) {
       switch (std::get<GPIOActorRole>(newRole)) {
@@ -271,17 +272,12 @@ struct Pin {
         case GPIOActorRole::Relay:
         case GPIOActorRole::Buzzer:
         case GPIOActorRole::Heater:
-          bool isChanged =
-              setMode(PinMode::Digital_Output); // Setze Modus auf Digital_Output für Aktoren
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::Digital_Output;
           break;
         case GPIOActorRole::Fan:
         case GPIOActorRole::LedStrip:
         case GPIOActorRole::Valve:
-          bool isChanged = setMode(PinMode::PWM); // Setze Modus auf PWM für Aktoren
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::PWM;
           break;
       }
     } else if (std::holds_alternative<GPIOSensorRole>(newRole)) {
@@ -291,28 +287,18 @@ struct Pin {
         case GPIOSensorRole::LightSensor:
         case GPIOSensorRole::SoilMoisture:
         case GPIOSensorRole::WaterLevel:
-          bool isChanged =
-              setMode(PinMode::Analog_Input); // Setze Modus auf Analog_Input für Sensoren
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::Analog_Input;
           break;
         case GPIOSensorRole::Motion:
         case GPIOSensorRole::DoorContact:
         case GPIOSensorRole::Switch:
-          bool isChanged =
-              setMode(PinMode::Digital_Input); // Setze Modus auf Digital_Input für Sensoren
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::Digital_Input;
           break;
         case GPIOSensorRole::Touch:
-          bool isChanged = setMode(PinMode::Touch_Sensor); // Setze Modus auf Touch für Sensoren
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::Touch_Sensor;
           break;
         case GPIOSensorRole::None:
-          bool isChanged = setMode(PinMode::None);
-          if (isChanged)
-            currentRole = newRole;
+          targetMode = PinMode::None;
           break;
       }
     } else {
@@ -321,6 +307,12 @@ struct Pin {
                          .c_str());
       return false;
     }
+
+    if (!setMode(targetMode)) {
+      return false;
+    }
+
+    currentRole = newRole;
     return true;
   }
 };

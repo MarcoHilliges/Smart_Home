@@ -123,7 +123,7 @@ const Device ESP32_Dev_Kit_C_V4 = {
            GPIOActorRole::Valve,
        },
        {"RTC-11"},
-       PinMode::None,
+       PinMode::Digital_Output,
        GPIOActorRole::Light,
        PinValue{DigitalOutputState::LOW_STATE}}},
      {1,
