@@ -209,6 +209,7 @@ onMounted(() => {
                 );
                 if (gpio) {
                   gpio.mode = gpioConfig.mode;
+                  gpio.role = gpioConfig.role;
                   gpio.label = gpioConfig.label;
                 }
               });

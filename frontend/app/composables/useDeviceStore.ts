@@ -148,6 +148,7 @@ export const useDeviceStore = () => {
         for (const key in gpioState) {
           if (key === "label") gpio.label = gpioState.label;
           else if (key === "mode") gpio.mode = gpioState.mode;
+          else if (key === "role") gpio.role = gpioState.role;
           else if (key === "state") gpio.state = gpioState.state;
         }
       } else {
@@ -155,6 +156,7 @@ export const useDeviceStore = () => {
           pinNumber: gpioState.pinNumber,
           state: gpioState.state,
           mode: gpioState.mode || "none",
+          role: gpioState.role || "none",
           label: gpioState.label || "",
         });
       }

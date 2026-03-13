@@ -32,6 +32,7 @@ export type GPIOMode = GPIOModeActor | GPIOModeSensor | 'none';
 export interface GPIOActor {
   pinNumber: GPIOPin;
   mode?: GPIOModeActor | "none";
+  role?: string;
   label?: string;
   state: GPIOPinState;
 }
@@ -39,6 +40,7 @@ export interface GPIOActor {
 export interface GPIOSensor {
   pinNumber: GPIOPin;
   mode?: GPIOModeSensor | "none";
+  role?: string;
   label?: string;
   state: number;
 }
