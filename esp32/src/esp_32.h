@@ -223,8 +223,9 @@ struct Pin {
   }
 
   bool setMode(PinMode mode) {
+    const bool isNoneMode = (mode == PinMode::None);
     const auto it = std::find(modes.begin(), modes.end(), mode);
-    if (it == modes.end()) {
+    if (!isNoneMode && it == modes.end()) {
       Serial.println(
           ("Pin: " + pinNumber + " Modus " + pinModeToString(mode) + " nicht unterstützt.")
               .c_str());
@@ -237,14 +238,29 @@ struct Pin {
               INPUT_PULLUP); // Setze Pin auf Eingang, um Stromverbrauch zu minimieren
       value = std::monostate{};
     } else if (mode == PinMode::Digital_Input) {
+      pinMode(std::stoi(pinNumber), INPUT_PULLUP);
       value = false; // Standardwert für digitale Eingänge
+      // TODO: Interrupts für digitale Eingänge einrichten, um Änderungen zu erkennen
     } else if (mode == PinMode::Digital_Output) {
-      value = DigitalOutputState::LOW_STATE;   // Standardwert für digitale Ausgänge
+      value = DigitalOutputState::LOW_STATE; // Standardwert für digitale Ausgänge
+      pinMode(std::stoi(pinNumber), OUTPUT);
       digitalWrite(std::stoi(pinNumber), LOW); // Setze physischen Pin auf LOW
-    } else if (mode == PinMode::PWM || mode == PinMode::Analog_Input) {
+    } else if (mode == PinMode::Analog_Input) {
+      pinMode(std::stoi(pinNumber), INPUT);
       value = 0; // Standardwert für analoge Pins
+      // TODO: Intervall für analoge Werte definieren (z.B. 0-1023) und validieren
+    } else if (mode == PinMode::PWM) {
+      pinMode(std::stoi(pinNumber), OUTPUT);
+      value = 0; // Standardwert für PWM-Ausgänge
+      // TODO: Intervall für PWM-Werte definieren (z.B. 0-255) und validieren
+    } else if (mode == PinMode::Touch_Sensor) {
+      pinMode(std::stoi(pinNumber), INPUT);
+      value = 0; // Standardwert für Touch-Sensoren
+      // TODO: Intervall für Touch-Werte definieren und validieren
     } else if (mode == PinMode::Analog_Output) {
-      value = 0.0f; // Standardwert für analoge Ausgänge
+      dacWrite(std::stoi(pinNumber), 0); // Setze physischen Pin auf 0V
+      value = 0.0f;                      // Standardwert für analoge Ausgänge
+      // TODO: Intervall für analoge Ausgangswerte definieren (z.B. 0.0-3.3V) und validieren
     }
     return true;
   }
@@ -281,6 +297,8 @@ struct Pin {
           break;
       }
     } else if (std::holds_alternative<GPIOSensorRole>(newRole)) {
+      Serial.println(
+          ("Pin: " + pinNumber + " Neue Sensorrolle: " + gpioRoleToString(newRole)).c_str());
       switch (std::get<GPIOSensorRole>(newRole)) {
         case GPIOSensorRole::Temperature:
         case GPIOSensorRole::Humidity:
