@@ -30,7 +30,7 @@ const devices = ref<Device[]>([]);
 let isInitialized = false;
 const localStorageKey = "Device_Data";
 
-const gpioModesActor: {
+const gpioRolesActor: {
   i18nKey: string;
   value: GPIOActorRole;
   symbolOn?: FunctionalComponent<LucideProps>;
@@ -95,7 +95,7 @@ const gpioModesActor: {
   },
 ];
 
-const gpioModesSensor: { i18nKey: string; value: GPIOSensorRole }[] = [
+const gpioRolesSensor: { i18nKey: string; value: GPIOSensorRole }[] = [
   { i18nKey: "device.sensor.temperature", value: "Temperature" },
   { i18nKey: "device.sensor.humidity", value: "Humidity" },
   { i18nKey: "device.sensor.light_sensor", value: "LightSensor" },
@@ -241,7 +241,7 @@ export const useDeviceStore = () => {
     addGpioStateMessage,
     saveDataIntoLocalStorage,
     loadDataFromLocalStorage,
-    gpioModesActor,
-    gpioModesSensor,
+    gpioRolesActor,
+    gpioRolesSensor,
   };
 };

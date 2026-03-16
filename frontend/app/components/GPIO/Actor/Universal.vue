@@ -30,17 +30,17 @@ const dimensions = computed(() => {
   };
 });
 
-const { gpioModesActor } = useDeviceStore();
+const { gpioRolesActor } = useDeviceStore();
 
 const gpioModeIcon = computed(() => {
-  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.role);
+  const mode = gpioRolesActor.find((role) => role.value === props.gpio.role);
   return props.gpio.state
     ? mode?.symbolOn || Power
     : mode?.symbolOff || PowerOff;
 });
 
 const gpioModeIconColor = computed(() => {
-  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.role);
+  const mode = gpioRolesActor.find((role) => role.value === props.gpio.role);
   return props.gpio.state === "HIGH" && mode?.colorOn ? mode.colorOn : "";
 });
 

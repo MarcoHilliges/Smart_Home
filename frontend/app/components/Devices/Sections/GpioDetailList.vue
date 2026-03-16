@@ -22,7 +22,7 @@ const props = defineProps<{
 const toast = useToast();
 const { t } = useI18n();
 
-const { gpioModesActor, gpioModesSensor } = useDeviceStore();
+const { gpioRolesActor, gpioRolesSensor } = useDeviceStore();
 
 const isUpdatingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>([]);
@@ -75,7 +75,7 @@ function getChanges() {
     if (originalGpio) {
       if (
         originalGpio.label !== gpio.label ||
-        originalGpio.mode !== gpio.mode
+        originalGpio.role !== gpio.role
       ) {
         const change: Partial<GPIO> = {
           pinNumber: gpio.pinNumber,
@@ -83,8 +83,8 @@ function getChanges() {
         if (gpio.label && originalGpio.label !== gpio.label) {
           change.label = gpio.label;
         }
-        if (gpio.mode && originalGpio.mode !== gpio.mode) {
-          change.mode = gpio.mode;
+        if (gpio.role && originalGpio.role !== gpio.role) {
+          change.role = gpio.role;
         }
         changedGpios.push(change);
       }
@@ -152,35 +152,29 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <div class="w-[150px]">
-          <label :for="`gpio-mode-select-${gpio.pinNumber}`">
-            {{ t("device.gpioMode") }}
-          </label>
-
-          {{ gpio.mode }} - {{ JSON.stringify(gpio) }}
-
+        <div class="w-[150px] flex">
           <select
-            v-model="gpio.mode"
-            name="modes"
-            :id="`gpio-mode-select-${gpio.pinNumber}`"
+            v-model="gpio.role"
+            name="roles"
+            :id="`gpio-role-select-${gpio.pinNumber}`"
           >
-            <option value="none">{{ t("common.deactivated") }}</option>
+            <option value="None">{{ t("common.deactivated") }}</option>
             <optgroup :label="t('device.actor.actor')">
               <option
-                v-for="mode in gpioModesActor"
-                :key="mode.value"
-                :value="mode.value"
+                v-for="role in gpioRolesActor"
+                :key="role.value"
+                :value="role.value"
               >
-                {{ t(mode.i18nKey) }}
+                {{ t(role.i18nKey) }}
               </option>
             </optgroup>
             <optgroup :label="t('device.sensor.sensor')">
               <option
-                v-for="mode in gpioModesSensor"
-                :key="mode.value"
-                :value="mode.value"
+                v-for="role in gpioRolesSensor"
+                :key="role.value"
+                :value="role.value"
               >
-                {{ t(mode.i18nKey) }}
+                {{ t(role.i18nKey) }}
               </option>
             </optgroup>
           </select>
@@ -230,8 +224,6 @@ onBeforeUnmount(() => {
       </li>
     </ul>
     <div class="mt-auto flex justify-end pb-6 mx-12">
-      {{ valuesAreChanged }}
-      {{ valuesAreValid }}
       <button
         class="px-12 py-6 border rounded"
         :class="
