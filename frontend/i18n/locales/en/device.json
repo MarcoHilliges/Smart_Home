@@ -12,6 +12,7 @@
   },
   "deviceIsOffline": "Device is offline",
   "gpioMode": "GPIO Mode",
+  "gpioRole": "GPIO Role",
   "sensor": {
     "door_contact": "Door Contact",
     "humidity": "Humidity",

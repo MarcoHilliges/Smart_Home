@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import type {
   DeviceStatus,
+  DigitalState,
   GPIO,
-  GPIOMode,
+  GPIOActor,
   GPIOPin,
-  GPIOPinState,
+  GPIORole,
+  GPIOSensor,
 } from "~/models/device";
 
 const emit = defineEmits<{
-  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
+  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: DigitalState }];
   getGpioStates: [];
   setGpioConfigs: [{ deviceId: string; gpioConfigs: Partial<GPIO>[] }];
 }>();
@@ -23,13 +25,29 @@ const props = defineProps<{
 const toast = useToast();
 const { t } = useI18n();
 
-const { gpioModesActor, gpioModesSensor } = useDeviceStore();
+const { gpioRolesActor, gpioRolesSensor } = useDeviceStore();
+function getRoleOptions(roles: GPIORole[]) {
+  const actorOptions: ActorOption[] = [];
+  const sensorOptions: SensorOption[] = [];
+  gpioRolesActor.forEach((role) => {
+    if (roles.includes(role.value)) {
+      actorOptions.push(role);
+    }
+  });
+  gpioRolesSensor.forEach((role) => {
+    if (roles.includes(role.value)) {
+      sensorOptions.push(role);
+    }
+  });
+  return { actorOptions, sensorOptions };
+}
 
 const isUpdatingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>([]);
 
 const valuesAreValid = computed(() => {
-  return !gpioPinStates.value.find((gpio) => gpio.state === null);
+  return true;
+  // return !gpioPinStates.value.find((gpio) => gpio.state === null);
 });
 const valuesAreChanged = computed(() => {
   return (
@@ -56,7 +74,7 @@ function stopGettingGpioStates() {
   isUpdatingGpioStates.value = null;
 }
 
-function setGpioPinState(pin: GPIOPin, value: GPIOPinState) {
+function setGpioPinState(pin: GPIOPin, value: DigitalState) {
   if (isUpdatingGpioStates.value) return;
   isUpdatingGpioStates.value = pin;
 
@@ -75,7 +93,7 @@ function getChanges() {
     if (originalGpio) {
       if (
         originalGpio.label !== gpio.label ||
-        originalGpio.mode !== gpio.mode
+        originalGpio.role !== gpio.role
       ) {
         const change: Partial<GPIO> = {
           pinNumber: gpio.pinNumber,
@@ -83,8 +101,8 @@ function getChanges() {
         if (gpio.label && originalGpio.label !== gpio.label) {
           change.label = gpio.label;
         }
-        if (gpio.mode && originalGpio.mode !== gpio.mode) {
-          change.mode = gpio.mode;
+        if (gpio.role && originalGpio.role !== gpio.role) {
+          change.role = gpio.role;
         }
         changedGpios.push(change);
       }
@@ -152,33 +170,35 @@ onBeforeUnmount(() => {
           />
         </div>
 
-        <div class="w-[150px]">
-          <label :for="`gpio-mode-select-${gpio.pinNumber}`">
-            {{ t("device.gpioMode") }}
-          </label>
-
+        <div class="w-[150px] flex">
           <select
-            v-model="gpio.mode"
-            name="modes"
-            :id="`gpio-mode-select-${gpio.pinNumber}`"
+            v-model="gpio.role"
+            name="roles"
+            :id="`gpio-role-select-${gpio.pinNumber}`"
           >
-            <option value="none">{{ t("common.deactivated") }}</option>
-            <optgroup :label="t('device.actor.actor')">
+            <option value="None">{{ t("common.deactivated") }}</option>
+            <optgroup
+              v-if="getRoleOptions(gpio.roles).actorOptions.length"
+              :label="t('device.actor.actor')"
+            >
               <option
-                v-for="mode in gpioModesActor"
-                :key="mode.value"
-                :value="mode.value"
+                v-for="role in getRoleOptions(gpio.roles).actorOptions"
+                :key="role.value"
+                :value="role.value"
               >
-                {{ t(mode.i18nKey) }}
+                {{ t(role.i18nKey) }}
               </option>
             </optgroup>
-            <optgroup :label="t('device.sensor.sensor')">
+            <optgroup
+              v-if="getRoleOptions(gpio.roles).sensorOptions.length"
+              :label="t('device.sensor.sensor')"
+            >
               <option
-                v-for="mode in gpioModesSensor"
-                :key="mode.value"
-                :value="mode.value"
+                v-for="role in getRoleOptions(gpio.roles).sensorOptions"
+                :key="role.value"
+                :value="role.value"
               >
-                {{ t(mode.i18nKey) }}
+                {{ t(role.i18nKey) }}
               </option>
             </optgroup>
           </select>
@@ -200,27 +220,27 @@ onBeforeUnmount(() => {
                 isUpdatingGpioStates === Number(gpio.pinNumber) &&
                 gpio.state === 0,
             }"
-            @click="setGpioPinState(Number(gpio.pinNumber), 1)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 'HIGH')"
           >
             ON
           </button>
           <button
             class="flex items-center justify-center w-24 h-20 rounded-r-md hover:text-error"
             :class="{
-              'bg-error': gpio.state === 0,
-              'bg-gray-300': gpio.state === 1,
+              'bg-error': gpio.state === 'LOW',
+              'bg-gray-300': gpio.state === 'HIGH',
               'pointer-events-none':
                 isUpdatingGpioStates ||
                 gpio.state === null ||
                 gpio.state === undefined ||
-                gpio.state === 0 ||
+                gpio.state === 'LOW' ||
                 deviceStatus !== 'online',
               'opacity-50': deviceStatus !== 'online',
               'text-error':
                 isUpdatingGpioStates === Number(gpio.pinNumber) &&
-                gpio.state === 1,
+                gpio.state === 'HIGH',
             }"
-            @click="setGpioPinState(Number(gpio.pinNumber), 0)"
+            @click="setGpioPinState(Number(gpio.pinNumber), 'LOW')"
           >
             OFF
           </button>

@@ -13,6 +13,7 @@
   "chooseGpioMode": "Wähle einen GPIO Modus",
   "deviceIsOffline": "Gerät ist offline",
   "gpioMode": "GPIO Modus",
+  "gpioRole": "GPIO Rolle",
   "sensor": {
     "door_contact": "Türkontakt",
     "humidity": "Luftfeuchtigkeit",

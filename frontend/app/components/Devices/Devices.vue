@@ -12,10 +12,11 @@ import type {
   Device,
   ExtendedGPIO,
   GPIO,
-  GPIOMode,
+  PinMode,
   GPIOPin,
-  GPIOPinState,
   SetGPIO,
+  GPIORole,
+  DigitalState,
 } from "~/models/device";
 
 import {
@@ -209,6 +210,7 @@ onMounted(() => {
                 );
                 if (gpio) {
                   gpio.mode = gpioConfig.mode;
+                  gpio.role = gpioConfig.role;
                   gpio.label = gpioConfig.label;
                 }
               });
@@ -229,10 +231,11 @@ onUnmounted(() => {
   $mqtt.removeAllListeners("message");
 });
 
-function setGpioPinState(deviceId: string, pin: GPIOPin, value: GPIOPinState) {
+function setGpioPinState(deviceId: string, pin: GPIOPin, value: DigitalState) {
   const payload: SetGPIO[] = [{ pinNumber: pin, state: value }];
   const topic = `esp32/${deviceId}/gpio/set`;
   const message = JSON.stringify(payload);
+  console.log("Publishing to topic:", topic, "with message:", message);
   $mqtt.publish(topic, message);
 }
 
@@ -264,8 +267,8 @@ function loadDataFromStorage() {
   }
 }
 
-interface GPIOGroup {
-  mode: GPIOMode;
+interface GPIORoleGroup {
+  mode: GPIORole;
   gpios: ExtendedGPIO[];
 }
 
@@ -278,18 +281,18 @@ const gpioGroups = computed(() => {
       deviceStatus: device.deviceStatus,
     })),
   );
-  const groups: GPIOGroup[] = [];
+  const groups: GPIORoleGroup[] = [];
   gpios.forEach((gpio) => {
-    if (!gpio.mode) gpio.mode = "none";
-    let group = groups.find((g) => g.mode === gpio.mode);
+    if (!gpio.role) gpio.role = "None";
+    let group = groups.find((g) => g.mode === gpio.role);
     if (!group) {
-      group = { mode: gpio.mode, gpios: [] };
+      group = { mode: gpio.role, gpios: [] };
       groups.push(group);
     }
     group.gpios.push(gpio);
   });
 
-  return groups.filter((group) => group.mode !== "none");
+  return groups.filter((group) => group.mode.toLowerCase() !== "none");
 });
 
 function changeTab(tab: ContentTab) {
@@ -303,6 +306,7 @@ function changeTab(tab: ContentTab) {
     <div
       class="w-full flex flex-grow p-24 justify-center overflow-auto custom-scrollbar"
     >
+    
       <div v-if="activeTab === 'overview'">
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">

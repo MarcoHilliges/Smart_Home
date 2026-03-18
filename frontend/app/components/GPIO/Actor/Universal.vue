@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { ExtendedGPIO, GPIOPin, GPIOPinState } from "~/models/device";
+import type { DigitalState, ExtendedGPIO, GPIOPin,  } from "~/models/device";
 import { Power, PowerOff } from "lucide-vue-next";
 
 const emits = defineEmits<{
-  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: GPIOPinState }];
+  setGpioPin: [{ deviceId: string; pin: GPIOPin; value: DigitalState }];
 }>();
 
 const props = defineProps<{
@@ -30,22 +30,22 @@ const dimensions = computed(() => {
   };
 });
 
-const { gpioModesActor } = useDeviceStore();
+const { gpioRolesActor } = useDeviceStore();
 
 const gpioModeIcon = computed(() => {
-  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.mode);
+  const mode = gpioRolesActor.find((role) => role.value === props.gpio.role);
   return props.gpio.state
     ? mode?.symbolOn || Power
     : mode?.symbolOff || PowerOff;
 });
 
 const gpioModeIconColor = computed(() => {
-  const mode = gpioModesActor.find((mode) => mode.value === props.gpio.mode);
-  return props.gpio.state && mode?.colorOn ? mode.colorOn : "";
+  const mode = gpioRolesActor.find((role) => role.value === props.gpio.role);
+  return props.gpio.state === "HIGH" && mode?.colorOn ? mode.colorOn : "";
 });
 
 const gpioState = computed(() => {
-  return !!props.gpio.state;
+  return props.gpio.state;
 });
 
 const isChangingState = ref<boolean>(false);
@@ -56,7 +56,7 @@ function setGpioPin() {
   emits("setGpioPin", {
     deviceId: props.gpio.deviceId,
     pin: props.gpio.pinNumber,
-    value: gpioState.value ? 0 : 1,
+    value: gpioState.value === "HIGH" ? "LOW" : "HIGH",
   });
 }
 
@@ -86,7 +86,7 @@ watch(
     "
   >
     <BasicCard
-      :light="gpioState && isChangingState === false"
+      :light="gpioState === 'HIGH' && isChangingState === false"
       light-color="green"
       :style="{ width: dimensions.width, height: dimensions.height }"
       class="flex justify-center items-center"
@@ -95,7 +95,7 @@ watch(
       }"
     >
       <BasicCardButton
-        :is-active="gpioState"
+        :is-active="gpioState === 'HIGH'"
         :is-selectable="true"
         general-classes="w-full h-full"
         active-classes="text-success"

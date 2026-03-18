@@ -1,4 +1,4 @@
-import type { DeviceStatus, GPIO, GPIOPin, GPIOPinState, WLANNetwork } from "./device";
+import type { DeviceStatus, GPIO, GPIOPin, WLANNetwork } from "./device";
 
 export enum MessageTopic {
   STATUS = "status",
