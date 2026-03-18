@@ -289,7 +289,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     // Iteriere über jedes GPIO-Steuerobjekt im empfangenen JSON-Array
     // Format: [{"pinNumber": 2, "state": "ON"}, {"pinNumber": 4, "state": "OFF"}]
     for (JsonObject pinObj : doc.as<JsonArray>()) {
-      // Extrahiere die Pin-Nummer und den Zustand aus dem Objekt
       if (!pinObj.containsKey("pinNumber") || !pinObj.containsKey("state")) {
         Serial.println("Fehler: Fehlende Felder 'pinNumber' oder 'state' in GPIO-Befehl");
         continue; // Diesen Befehl überspringen
@@ -299,8 +298,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
       String stateStr =
           pinObj["state"].as<String>(); // Extrahiere den Zustand ("ON", "OFF", "1", "0")
 
-      int newState = 0; // Standardmäßig 0
-      // Konvertiere den String-Zustand in 1/0
+      int newState = 0;
       if (stateStr == "ON" || stateStr == "1" || stateStr == "HIGH") {
         newState = 1;
       } else if (stateStr == "OFF" || stateStr == "0" || stateStr == "LOW") {
@@ -489,6 +487,10 @@ void sendHeartbeat() {
         pinObj["mode"] = pinModeToString(pin.currentMode);
         pinObj["role"] = gpioRoleToString(pin.currentRole);
         pinObj["label"] = pin.label;
+        JsonArray rolesArray = pinObj.createNestedArray("roles");
+        for (const auto& role : pin.roles) {
+          rolesArray.add(gpioRoleToString(role));
+        }
       }
       ++currentPinIndex;
       if (currentPinIndex >= chunkEnd) {

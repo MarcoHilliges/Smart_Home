@@ -311,7 +311,6 @@ function changeTab(tab: ContentTab) {
         <template v-for="(group, index) in gpioGroups" :key="index">
           <div class="w-full flex flex-wrap justify-center">
             <template v-for="gpio in group.gpios" :key="gpio.pinNumber">
-              <pre>{{ gpio }}</pre>
               <GPIOActorUniversal
                 :gpio="gpio"
                 class="m-8"

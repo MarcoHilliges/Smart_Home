@@ -3,7 +3,10 @@ import type {
   DeviceStatus,
   DigitalState,
   GPIO,
+  GPIOActor,
   GPIOPin,
+  GPIORole,
+  GPIOSensor,
 } from "~/models/device";
 
 const emit = defineEmits<{
@@ -23,6 +26,21 @@ const toast = useToast();
 const { t } = useI18n();
 
 const { gpioRolesActor, gpioRolesSensor } = useDeviceStore();
+function getRoleOptions(roles: GPIORole[]) {
+  const actorOptions: ActorOption[] = [];
+  const sensorOptions: SensorOption[] = [];
+  gpioRolesActor.forEach((role) => {
+    if (roles.includes(role.value)) {
+      actorOptions.push(role);
+    }
+  });
+  gpioRolesSensor.forEach((role) => {
+    if (roles.includes(role.value)) {
+      sensorOptions.push(role);
+    }
+  });
+  return { actorOptions, sensorOptions };
+}
 
 const isUpdatingGpioStates = ref<null | GPIOPin | -1>(null);
 const gpioPinStates = ref<GPIO[]>([]);
@@ -159,18 +177,24 @@ onBeforeUnmount(() => {
             :id="`gpio-role-select-${gpio.pinNumber}`"
           >
             <option value="None">{{ t("common.deactivated") }}</option>
-            <optgroup :label="t('device.actor.actor')">
+            <optgroup
+              v-if="getRoleOptions(gpio.roles).actorOptions.length"
+              :label="t('device.actor.actor')"
+            >
               <option
-                v-for="role in gpioRolesActor"
+                v-for="role in getRoleOptions(gpio.roles).actorOptions"
                 :key="role.value"
                 :value="role.value"
               >
                 {{ t(role.i18nKey) }}
               </option>
             </optgroup>
-            <optgroup :label="t('device.sensor.sensor')">
+            <optgroup
+              v-if="getRoleOptions(gpio.roles).sensorOptions.length"
+              :label="t('device.sensor.sensor')"
+            >
               <option
-                v-for="role in gpioRolesSensor"
+                v-for="role in getRoleOptions(gpio.roles).sensorOptions"
                 :key="role.value"
                 :value="role.value"
               >

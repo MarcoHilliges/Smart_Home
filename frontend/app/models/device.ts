@@ -42,6 +42,7 @@ export type GPIORole = GPIOActorRole | GPIOSensorRole;
 export interface GPIOActor {
   pinNumber: GPIOPin;
   mode?: PinMode;
+  roles: GPIOActorRole[];
   role?: GPIOActorRole;
   label?: string;
   state: DigitalState;
@@ -50,6 +51,7 @@ export interface GPIOActor {
 export interface GPIOSensor {
   pinNumber: GPIOPin;
   mode?: PinMode;
+  roles: GPIOSensorRole[];
   role?: GPIOSensorRole;
   label?: string;
   state: number;

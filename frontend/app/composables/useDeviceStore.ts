@@ -30,13 +30,15 @@ const devices = ref<Device[]>([]);
 let isInitialized = false;
 const localStorageKey = "Device_Data";
 
-const gpioRolesActor: {
+export interface ActorOption {
   i18nKey: string;
   value: GPIOActorRole;
   symbolOn?: FunctionalComponent<LucideProps>;
   symbolOff?: FunctionalComponent<LucideProps>;
   colorOn?: string;
-}[] = [
+}
+
+const gpioRolesActor: ActorOption[] = [
   {
     i18nKey: "device.actor.light",
     value: "Light",
@@ -95,7 +97,12 @@ const gpioRolesActor: {
   },
 ];
 
-const gpioRolesSensor: { i18nKey: string; value: GPIOSensorRole }[] = [
+export interface SensorOption {
+  i18nKey: string;
+  value: GPIOSensorRole;
+}
+
+const gpioRolesSensor: SensorOption[] = [
   { i18nKey: "device.sensor.temperature", value: "Temperature" },
   { i18nKey: "device.sensor.humidity", value: "Humidity" },
   { i18nKey: "device.sensor.light_sensor", value: "LightSensor" },
@@ -148,6 +155,7 @@ export const useDeviceStore = () => {
         for (const key in gpioState) {
           if (key === "label") gpio.label = gpioState.label;
           else if (key === "mode") gpio.mode = gpioState.mode;
+          else if (key === "roles") gpio.roles = gpioState.roles;
           else if (key === "role") gpio.role = gpioState.role;
           else if (key === "state") gpio.state = gpioState.state;
         }
@@ -157,6 +165,7 @@ export const useDeviceStore = () => {
             pinNumber: gpioState.pinNumber,
             state: gpioState.state,
             mode: gpioState.mode || "None",
+            roles: gpioState.roles || [],
             role: gpioState.role || "None",
             label: gpioState.label || "",
           });
@@ -165,6 +174,7 @@ export const useDeviceStore = () => {
             pinNumber: gpioState.pinNumber,
             state: gpioState.state,
             mode: gpioState.mode || "None",
+            roles: gpioState.roles || [],
             role: gpioState.role,
             label: gpioState.label || "",
           });
